@@ -14,11 +14,11 @@
         <!-- Header -->
         <header class="text-center mb-10">
             <h1 class="text-3xl font-bold mb-2">SEO Auditor</h1>
-            <p class="text-slate-400">Analyze any URL across 9 SEO categories</p>
+            <p class="text-slate-400">Analyze any URL across 14 SEO categories + site crawl</p>
         </header>
 
         <!-- Input -->
-        <form id="audit-form" class="max-w-2xl mx-auto mb-10">
+        <form id="audit-form" class="max-w-2xl mx-auto mb-6">
             <div class="flex gap-3">
                 <input
                     id="url-input"
@@ -37,6 +37,53 @@
             </div>
             <p id="error-msg" class="text-red-400 text-sm mt-2 hidden"></p>
         </form>
+
+        <!-- Crawl Section -->
+        <details class="max-w-2xl mx-auto mb-10">
+            <summary class="cursor-pointer text-slate-400 hover:text-slate-200 text-sm font-medium mb-2">
+                Site Crawl (multi-page analysis)
+            </summary>
+            <form id="crawl-form" class="mt-3">
+                <div class="flex gap-3">
+                    <input
+                        id="crawl-url-input"
+                        type="url"
+                        placeholder="https://example.com"
+                        required
+                        class="flex-1 px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    >
+                    <input
+                        id="crawl-max-pages"
+                        type="number"
+                        min="1"
+                        max="50"
+                        value="10"
+                        class="w-20 px-3 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white text-center focus:outline-none focus:border-purple-500"
+                        title="Max pages to crawl"
+                    >
+                    <button
+                        type="submit"
+                        id="crawl-btn"
+                        class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Crawl
+                    </button>
+                </div>
+                <p class="text-slate-500 text-xs mt-1">Max pages (1-50). Crawl follows internal links via BFS.</p>
+                <p id="crawl-error-msg" class="text-red-400 text-sm mt-2 hidden"></p>
+            </form>
+        </details>
+
+        <!-- Crawl Loading -->
+        <div id="crawl-loading" class="hidden flex flex-col items-center gap-3 mb-10">
+            <div class="spinner"></div>
+            <p class="text-slate-400">Crawling site...</p>
+        </div>
+
+        <!-- Crawl Results -->
+        <div id="crawl-results" class="hidden fade-in mb-10">
+            <div id="crawl-results-content"></div>
+        </div>
 
         <!-- Loading -->
         <div id="loading" class="hidden flex flex-col items-center gap-3 mb-10">

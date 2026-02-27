@@ -42,6 +42,9 @@ CATEGORY_LABELS: dict[str, str] = {
     "robots": "Robots.txt",
     "tracking": "Tracking & Analytics",
     "semantic": "Semantic Structure",
+    "ads_quality": "Ads Landing Page Quality",
+    "serp_features": "SERP Feature Eligibility",
+    "accessibility": "Accessibility (WAVE)",
 }
 
 CATEGORY_DESCRIPTIONS: dict[str, str] = {
@@ -51,11 +54,14 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
     "links": "Internal/external link counts, empty hrefs, nofollow usage.",
     "performance": "Response time, page size, HTTPS, render-blocking scripts.",
     "mobile": "Viewport meta tag, responsive design, fixed-width elements.",
-    "structured_data": "JSON-LD, Microdata, RDFa structured markup.",
+    "structured_data": "JSON-LD, Microdata, RDFa, OpenGraph, Dublin Core with rich snippet validation.",
     "sitemap": "Sitemap.xml accessibility, URL entries, freshness.",
     "robots": "Robots.txt rules, sitemap reference, crawl permissions.",
     "tracking": "Analytics (GA4), Tag Manager, verification tags, marketing pixels.",
     "semantic": "HTML5 semantic elements, ARIA roles, content-to-HTML ratio.",
+    "ads_quality": "HTTPS, load speed, mobile viewport, content depth, CTAs, conversion tracking.",
+    "serp_features": "Schema-based SERP eligibility, sitelinks, image pack, meta robots checks.",
+    "accessibility": "WCAG compliance via WAVE: errors, contrast, alerts, ARIA, structural elements.",
 }
 
 SEVERITY_COLORS: dict[str, tuple[int, int, int]] = {
@@ -192,9 +198,10 @@ def _score_grade(score: int) -> str:
 class BrandedPDF(FPDF):
     def __init__(self, logo_path: str | None = None) -> None:
         super().__init__(orientation="P", unit="mm", format="A4")
-        self.set_auto_page_break(auto=True, margin=22)
+        self.set_auto_page_break(auto=False)  # manual page breaks only
         self.logo_path = logo_path
         self._page_num = 0
+        self._bottom = self.h - 22  # usable bottom margin
 
     def header(self) -> None:
         # Skip header on page 1 (cover)
@@ -401,12 +408,19 @@ def _render_cover(pdf: BrandedPDF, data: AuditResponse) -> None:
         pdf.cell(stat_w - 3, 5, label, align="C")
         sx += stat_w
 
+    # Category count badge
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(*GREY)
+    pdf.set_y(stats_y + 28)
+    cat_count = len(data.categories)
+    pdf.cell(0, 5, f"{cat_count} categories analyzed  |  WAVE accessibility  |  SERP features  |  Ads quality", align="C")
+
     # Bottom tagline
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(*BRAND_ACCENT)
-    pdf.set_y(260)
+    pdf.set_y(stats_y + 42)
     pdf.cell(0, 5, "Prepared for Rikumo  |  Japanese Life Store", align="C")
-    pdf.set_y(267)
+    pdf.set_y(pdf.get_y() + 7)
     pdf.set_font("Helvetica", "", 7)
     pdf.set_text_color(*GREY)
     pdf.cell(0, 4, "Confidential  -  For internal use only", align="C")
@@ -498,8 +512,8 @@ def _render_summary(pdf: BrandedPDF, data: AuditResponse) -> None:
     pdf.set_x(15)
     pdf.cell(0, 7, "Category Scores", new_x="LMARGIN", new_y="NEXT")
 
-    bar_x = 58
-    bar_max_w = pdf.w - bar_x - 30
+    bar_x = 62
+    bar_max_w = pdf.w - bar_x - 28
     y = bar_start_y
 
     sorted_cats = sorted(data.categories, key=lambda c: CATEGORY_WEIGHTS.get(c.name, 0), reverse=True)
@@ -510,23 +524,23 @@ def _render_summary(pdf: BrandedPDF, data: AuditResponse) -> None:
         color = _score_color(cat.score)
 
         # Label
-        pdf.set_font("Helvetica", "", 8)
+        pdf.set_font("Helvetica", "", 7.5)
         pdf.set_text_color(*BRAND_DARK)
         pdf.set_xy(15, y)
         pdf.cell(bar_x - 17, 5, label, align="R")
 
         # Bar background
         pdf.set_fill_color(*BRAND_LINE)
-        pdf.rect(bar_x, y + 1, bar_max_w, 3.5, "F")
+        pdf.rect(bar_x, y + 1, bar_max_w, 3, "F")
 
-        # Bar fill with rounded end effect
+        # Bar fill
         fill_w = bar_max_w * cat.score / 100
         if fill_w > 0:
             pdf.set_fill_color(*color)
-            pdf.rect(bar_x, y + 1, fill_w, 3.5, "F")
+            pdf.rect(bar_x, y + 1, fill_w, 3, "F")
 
         # Score
-        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_font("Helvetica", "B", 7.5)
         pdf.set_text_color(*color)
         pdf.set_xy(bar_x + bar_max_w + 2, y)
         pdf.cell(12, 5, str(cat.score))
@@ -537,7 +551,7 @@ def _render_summary(pdf: BrandedPDF, data: AuditResponse) -> None:
         pdf.set_xy(bar_x + bar_max_w + 14, y + 0.5)
         pdf.cell(10, 4, f"{int(weight * 100)}%")
 
-        y += 9
+        y += 7.5
 
 
 def _draw_donut_slice(pdf: BrandedPDF, cx: float, cy: float,
@@ -575,14 +589,20 @@ def _render_scorecard(pdf: BrandedPDF, data: AuditResponse) -> None:
     sorted_cats = sorted(data.categories, key=lambda c: CATEGORY_WEIGHTS.get(c.name, 0), reverse=True)
 
     card_w = (pdf.w - 30 - 8) / 3  # 3 columns
-    card_h = 28
-    margin = 4
+    card_h = 24
+    margin = 3
     x_start = 15
     y_start = pdf.get_y() + 2
     col = 0
     row_y = y_start
 
     for cat in sorted_cats:
+        # Page break if needed for a new row
+        if col == 0 and row_y + card_h > pdf._bottom:
+            pdf.add_page()
+            pdf.set_y(20)
+            row_y = 20
+
         x = x_start + col * (card_w + margin)
         color = _score_color(cat.score)
         label = CATEGORY_LABELS.get(cat.name, cat.name)
@@ -600,42 +620,42 @@ def _render_scorecard(pdf: BrandedPDF, data: AuditResponse) -> None:
         pdf.rect(x, row_y, 2, card_h, "F")
 
         # Category name
-        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_font("Helvetica", "B", 7)
         pdf.set_text_color(*BRAND_DARK)
-        pdf.set_xy(x + 5, row_y + 2)
-        pdf.cell(card_w - 25, 4, label)
+        pdf.set_xy(x + 5, row_y + 1.5)
+        pdf.cell(card_w - 22, 4, label)
 
         # Grade circle
-        gcx = x + card_w - 10
-        gcy = row_y + 9
+        gcx = x + card_w - 9
+        gcy = row_y + 8
         pdf.set_fill_color(*color)
-        pdf.ellipse(gcx - 5, gcy - 5, 10, 10, "F")
-        pdf.set_font("Helvetica", "B", 8)
+        pdf.ellipse(gcx - 4.5, gcy - 4.5, 9, 9, "F")
+        pdf.set_font("Helvetica", "B", 7)
         pdf.set_text_color(*WHITE)
         gw = pdf.get_string_width(grade)
-        pdf.set_xy(gcx - gw / 2, gcy - 3)
-        pdf.cell(gw, 6, grade)
+        pdf.set_xy(gcx - gw / 2, gcy - 2.5)
+        pdf.cell(gw, 5, grade)
 
         # Score number
-        pdf.set_font("Helvetica", "B", 14)
+        pdf.set_font("Helvetica", "B", 13)
         pdf.set_text_color(*color)
-        pdf.set_xy(x + 5, row_y + 8)
-        pdf.cell(20, 7, str(cat.score))
+        pdf.set_xy(x + 5, row_y + 7)
+        pdf.cell(20, 6, str(cat.score))
 
-        pdf.set_font("Helvetica", "", 6)
+        pdf.set_font("Helvetica", "", 5.5)
         pdf.set_text_color(*GREY)
-        pdf.set_xy(x + 5, row_y + 16)
-        pdf.cell(20, 4, f"/ 100  ({int(weight*100)}% weight)")
+        pdf.set_xy(x + 5, row_y + 14)
+        pdf.cell(20, 3, f"/ 100  ({int(weight*100)}% weight)")
 
         # Error/warning badges
-        badge_y = row_y + 22
+        badge_y = row_y + 18.5
         if errs:
-            pdf.set_font("Helvetica", "", 6)
+            pdf.set_font("Helvetica", "", 5.5)
             pdf.set_text_color(*RED)
             pdf.set_xy(x + 5, badge_y)
             pdf.cell(15, 3, f"{errs} error{'s' if errs > 1 else ''}")
         if warns:
-            pdf.set_font("Helvetica", "", 6)
+            pdf.set_font("Helvetica", "", 5.5)
             pdf.set_text_color(*YELLOW)
             pdf.set_xy(x + 22 if errs else x + 5, badge_y)
             pdf.cell(15, 3, f"{warns} warning{'s' if warns > 1 else ''}")
@@ -645,13 +665,27 @@ def _render_scorecard(pdf: BrandedPDF, data: AuditResponse) -> None:
             col = 0
             row_y += card_h + margin
 
-    # Handle last incomplete row
-    pdf.set_y(row_y + card_h + 8)
+    # Handle last incomplete row — no extra gap, let next section flow naturally
+    if col > 0:
+        # Incomplete row — advance past it
+        pdf.set_y(row_y + card_h + 2)
+    else:
+        pdf.set_y(row_y + 2)
 
 
 # -------------------------------------------------------------------
 # Category detail pages
 # -------------------------------------------------------------------
+
+def _estimate_issue_height(pdf: BrandedPDF, message: str) -> float:
+    """Estimate how tall an issue row will be."""
+    pdf.set_font("Helvetica", "", 7.5)
+    badge_w = 22  # approx badge width
+    text_x = 17 + badge_w + 3
+    text_w = pdf.w - text_x - 17
+    lines = max(1, math.ceil(pdf.get_string_width(_safe(message)) / text_w))
+    return max(5.5, lines * 4) + 1
+
 
 def _render_category_detail(pdf: BrandedPDF, cat: CategoryResult) -> None:
     label = CATEGORY_LABELS.get(cat.name, cat.name)
@@ -659,14 +693,16 @@ def _render_category_detail(pdf: BrandedPDF, cat: CategoryResult) -> None:
     color = _score_color(cat.score)
     desc = CATEGORY_DESCRIPTIONS.get(cat.name, "")
 
-    if pdf.get_y() > pdf.h - 55:
+    # Need at least header (16) + desc (6) + one issue row (7) = ~30mm
+    min_needed = 30
+    if pdf.get_y() + min_needed > pdf._bottom:
         pdf.add_page()
         pdf.set_y(20)
 
     y = pdf.get_y()
 
     # Category header card
-    header_h = 16
+    header_h = 14
     pdf._card(15, y, pdf.w - 30, header_h)
 
     # Left color bar
@@ -674,53 +710,56 @@ def _render_category_detail(pdf: BrandedPDF, cat: CategoryResult) -> None:
     pdf.rect(15, y, 2.5, header_h, "F")
 
     # Name
-    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(*BRAND_DARK)
-    pdf.set_xy(20, y + 2)
-    pdf.cell(80, 6, label)
+    pdf.set_xy(20, y + 1.5)
+    pdf.cell(80, 5, label)
 
     # Score
-    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(*color)
     pdf.set_xy(pdf.w - 55, y + 1)
-    pdf.cell(15, 7, str(cat.score), align="R")
+    pdf.cell(15, 6, str(cat.score), align="R")
 
     # Weight
     pdf.set_font("Helvetica", "", 7)
     pdf.set_text_color(*GREY)
-    pdf.set_xy(pdf.w - 37, y + 3)
+    pdf.set_xy(pdf.w - 37, y + 2.5)
     pdf.cell(15, 5, f"({int(weight*100)}% weight)")
 
     # Progress bar
-    bar_y = y + 11
+    bar_y = y + 9.5
     bar_w = pdf.w - 40
     pdf.set_fill_color(*BRAND_LINE)
-    pdf.rect(20, bar_y, bar_w, 2.5, "F")
+    pdf.rect(20, bar_y, bar_w, 2, "F")
     fill_w = bar_w * cat.score / 100
     if fill_w > 0:
         pdf.set_fill_color(*color)
-        pdf.rect(20, bar_y, fill_w, 2.5, "F")
+        pdf.rect(20, bar_y, fill_w, 2, "F")
 
-    pdf.set_y(y + header_h + 2)
+    pdf.set_y(y + header_h + 1)
 
     # Description
     if desc:
-        pdf.set_font("Helvetica", "I", 7.5)
+        pdf.set_font("Helvetica", "I", 7)
         pdf.set_text_color(*GREY)
         pdf.set_x(17)
-        pdf.cell(0, 4, _safe(desc), new_x="LMARGIN", new_y="NEXT")
-        pdf.set_y(pdf.get_y() + 1.5)
+        pdf.cell(0, 3.5, _safe(desc), new_x="LMARGIN", new_y="NEXT")
+        pdf.set_y(pdf.get_y() + 1)
 
     # Issues
     if not cat.issues:
-        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_font("Helvetica", "I", 7.5)
         pdf.set_text_color(*GREEN)
         pdf.set_x(17)
-        pdf.cell(0, 5, "No issues found.", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 4.5, "No issues found.", new_x="LMARGIN", new_y="NEXT")
     else:
         for issue in cat.issues:
+            row_h = _estimate_issue_height(pdf, issue.message)
             iy = pdf.get_y()
-            if iy > pdf.h - 18:
+
+            # Check if badge + text fits; if not, break BEFORE drawing badge
+            if iy + row_h > pdf._bottom:
                 pdf.add_page()
                 pdf.set_y(20)
                 iy = 20
@@ -735,9 +774,9 @@ def _render_category_detail(pdf: BrandedPDF, cat: CategoryResult) -> None:
             pdf.multi_cell(text_w, 4, _safe(issue.message))
             if pdf.get_y() < iy + 5.5:
                 pdf.set_y(iy + 5.5)
-            pdf.set_y(pdf.get_y() + 0.5)
+            pdf.set_y(pdf.get_y() + 0.3)
 
-    pdf.set_y(pdf.get_y() + 5)
+    pdf.set_y(pdf.get_y() + 3)
 
 
 # -------------------------------------------------------------------
@@ -745,7 +784,9 @@ def _render_category_detail(pdf: BrandedPDF, cat: CategoryResult) -> None:
 # -------------------------------------------------------------------
 
 def _render_aioseo_findings(pdf: BrandedPDF) -> None:
-    pdf.add_page()
+    # Start on same page if enough room for title + at least a few findings
+    if pdf.get_y() + 30 > pdf._bottom:
+        pdf.add_page()
     pdf._section_title("Additional Findings (AIOSEO Audit)")
 
     pdf.set_font("Helvetica", "", 8)
@@ -753,21 +794,26 @@ def _render_aioseo_findings(pdf: BrandedPDF) -> None:
     pdf.set_x(15)
     pdf.cell(0, 5, "Key findings from the AIOSEO analysis report, integrated for comprehensive coverage.",
              new_x="LMARGIN", new_y="NEXT")
-    pdf.set_y(pdf.get_y() + 4)
+    pdf.set_y(pdf.get_y() + 3)
 
     current_cat = ""
     for finding in AIOSEO_FINDINGS:
-        if pdf.get_y() > pdf.h - 25:
+        cat = finding["category"]
+        # Estimate row height
+        row_h = _estimate_issue_height(pdf, finding["finding"])
+        cat_header_h = 7 if cat != current_cat else 0
+        needed = cat_header_h + row_h
+
+        if pdf.get_y() + needed > pdf._bottom:
             pdf.add_page()
             pdf.set_y(20)
 
-        cat = finding["category"]
         if cat != current_cat:
             current_cat = cat
             pdf.set_font("Helvetica", "B", 9)
             pdf.set_text_color(*BRAND_ACCENT)
             pdf.set_x(15)
-            pdf.cell(0, 6, cat, new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, cat, new_x="LMARGIN", new_y="NEXT")
             pdf.set_y(pdf.get_y() + 1)
 
         iy = pdf.get_y()
@@ -781,7 +827,7 @@ def _render_aioseo_findings(pdf: BrandedPDF) -> None:
         pdf.multi_cell(text_w, 4, _safe(finding["finding"]))
         if pdf.get_y() < iy + 5.5:
             pdf.set_y(iy + 5.5)
-        pdf.set_y(pdf.get_y() + 1.5)
+        pdf.set_y(pdf.get_y() + 1)
 
 
 # -------------------------------------------------------------------
@@ -789,7 +835,9 @@ def _render_aioseo_findings(pdf: BrandedPDF) -> None:
 # -------------------------------------------------------------------
 
 def _render_recommendations(pdf: BrandedPDF, data: AuditResponse) -> None:
-    pdf.add_page()
+    # Flow from previous section if room
+    if pdf.get_y() + 40 > pdf._bottom:
+        pdf.add_page()
     pdf._section_title("Top Priority Fixes")
 
     sorted_cats = sorted(data.categories, key=lambda c: CATEGORY_WEIGHTS.get(c.name, 0), reverse=True)
@@ -804,7 +852,7 @@ def _render_recommendations(pdf: BrandedPDF, data: AuditResponse) -> None:
         has_errors = True
         label = CATEGORY_LABELS.get(cat.name, cat.name)
 
-        if pdf.get_y() > pdf.h - 22:
+        if pdf.get_y() + 12 > pdf._bottom:
             pdf.add_page()
             pdf.set_y(20)
 
@@ -814,7 +862,8 @@ def _render_recommendations(pdf: BrandedPDF, data: AuditResponse) -> None:
         pdf.cell(0, 5, f"{label}", new_x="LMARGIN", new_y="NEXT")
 
         for issue in errors:
-            if pdf.get_y() > pdf.h - 14:
+            row_h = _estimate_issue_height(pdf, f"{priority}. {issue.message}")
+            if pdf.get_y() + row_h > pdf._bottom:
                 pdf.add_page()
                 pdf.set_y(20)
             pdf.set_font("Helvetica", "", 7.5)
@@ -833,21 +882,29 @@ def _render_recommendations(pdf: BrandedPDF, data: AuditResponse) -> None:
     # AIOSEO errors
     aioseo_errors = [f for f in AIOSEO_FINDINGS if f["severity"] == "error"]
     if aioseo_errors:
-        pdf.set_y(pdf.get_y() + 3)
+        pdf.set_y(pdf.get_y() + 2)
+        if pdf.get_y() + 12 > pdf._bottom:
+            pdf.add_page()
+            pdf.set_y(20)
         pdf.set_font("Helvetica", "B", 9)
         pdf.set_text_color(*RED)
         pdf.set_x(15)
         pdf.cell(0, 5, "Additional Critical Issues (AIOSEO)", new_x="LMARGIN", new_y="NEXT")
         for f in aioseo_errors:
+            msg = f"{priority}. [{f['category']}] {f['finding']}"
+            row_h = _estimate_issue_height(pdf, msg)
+            if pdf.get_y() + row_h > pdf._bottom:
+                pdf.add_page()
+                pdf.set_y(20)
             pdf.set_font("Helvetica", "", 7.5)
             pdf.set_text_color(*BRAND_DARK)
             pdf.set_x(20)
-            pdf.multi_cell(pdf.w - 40, 4, _safe(f"{priority}. [{f['category']}] {f['finding']}"))
+            pdf.multi_cell(pdf.w - 40, 4, _safe(msg))
             priority += 1
 
     # Warnings
-    pdf.set_y(pdf.get_y() + 5)
-    if pdf.get_y() > pdf.h - 28:
+    pdf.set_y(pdf.get_y() + 4)
+    if pdf.get_y() + 15 > pdf._bottom:
         pdf.add_page()
         pdf.set_y(20)
 
@@ -855,7 +912,7 @@ def _render_recommendations(pdf: BrandedPDF, data: AuditResponse) -> None:
     pdf.set_text_color(*YELLOW)
     pdf.set_x(15)
     pdf.cell(0, 6, "Warnings", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_y(pdf.get_y() + 2)
+    pdf.set_y(pdf.get_y() + 1)
 
     has_warnings = False
     for cat in sorted_cats:
@@ -865,7 +922,7 @@ def _render_recommendations(pdf: BrandedPDF, data: AuditResponse) -> None:
         has_warnings = True
         label = CATEGORY_LABELS.get(cat.name, cat.name)
 
-        if pdf.get_y() > pdf.h - 22:
+        if pdf.get_y() + 12 > pdf._bottom:
             pdf.add_page()
             pdf.set_y(20)
 
@@ -875,28 +932,38 @@ def _render_recommendations(pdf: BrandedPDF, data: AuditResponse) -> None:
         pdf.cell(0, 5, label, new_x="LMARGIN", new_y="NEXT")
 
         for issue in warns:
-            if pdf.get_y() > pdf.h - 14:
+            msg = f"- {issue.message}"
+            row_h = _estimate_issue_height(pdf, msg)
+            if pdf.get_y() + row_h > pdf._bottom:
                 pdf.add_page()
                 pdf.set_y(20)
             pdf.set_font("Helvetica", "", 7.5)
             pdf.set_text_color(*BRAND_DARK)
             pdf.set_x(20)
-            pdf.multi_cell(pdf.w - 40, 4, _safe(f"- {issue.message}"))
-        pdf.set_y(pdf.get_y() + 2)
+            pdf.multi_cell(pdf.w - 40, 4, _safe(msg))
+        pdf.set_y(pdf.get_y() + 1.5)
 
     # AIOSEO warnings
     aioseo_warns = [f for f in AIOSEO_FINDINGS if f["severity"] == "warning"]
     if aioseo_warns:
-        pdf.set_y(pdf.get_y() + 3)
+        pdf.set_y(pdf.get_y() + 2)
+        if pdf.get_y() + 12 > pdf._bottom:
+            pdf.add_page()
+            pdf.set_y(20)
         pdf.set_font("Helvetica", "B", 9)
         pdf.set_text_color(*YELLOW)
         pdf.set_x(15)
         pdf.cell(0, 5, "Additional Warnings (AIOSEO)", new_x="LMARGIN", new_y="NEXT")
         for f in aioseo_warns:
+            msg = f"- [{f['category']}] {f['finding']}"
+            row_h = _estimate_issue_height(pdf, msg)
+            if pdf.get_y() + row_h > pdf._bottom:
+                pdf.add_page()
+                pdf.set_y(20)
             pdf.set_font("Helvetica", "", 7.5)
             pdf.set_text_color(*BRAND_DARK)
             pdf.set_x(20)
-            pdf.multi_cell(pdf.w - 40, 4, _safe(f"- [{f['category']}] {f['finding']}"))
+            pdf.multi_cell(pdf.w - 40, 4, _safe(msg))
 
     if not has_warnings and not aioseo_warns:
         pdf.set_font("Helvetica", "", 9)
@@ -910,7 +977,9 @@ def _render_recommendations(pdf: BrandedPDF, data: AuditResponse) -> None:
 # -------------------------------------------------------------------
 
 def _render_closing(pdf: BrandedPDF, data: AuditResponse) -> None:
-    pdf.add_page()
+    # Only start new page if not enough room for the section (~90mm needed)
+    if pdf.get_y() + 90 > pdf._bottom:
+        pdf.add_page()
     pdf._section_title("Summary & Next Steps")
 
     score = data.overall_score
@@ -940,29 +1009,29 @@ def _render_closing(pdf: BrandedPDF, data: AuditResponse) -> None:
 
     for title, desc, clr in items:
         y = pdf.get_y()
-        if y > pdf.h - 22:
+        if y + 12 > pdf._bottom:
             pdf.add_page()
             pdf.set_y(20)
             y = 20
 
-        pdf._card(15, y, pdf.w - 30, 14)
+        pdf._card(15, y, pdf.w - 30, 12)
         pdf.set_fill_color(*clr)
-        pdf.rect(15, y, 2, 14, "F")
+        pdf.rect(15, y, 2, 12, "F")
 
         pdf.set_font("Helvetica", "B", 8)
         pdf.set_text_color(*clr)
-        pdf.set_xy(20, y + 1.5)
+        pdf.set_xy(20, y + 1)
         pdf.cell(30, 4, title)
 
         pdf.set_font("Helvetica", "", 7.5)
         pdf.set_text_color(*BRAND_DARK)
-        pdf.set_xy(20, y + 6.5)
+        pdf.set_xy(20, y + 5.5)
         pdf.cell(pdf.w - 40, 4, _safe(desc))
 
-        pdf.set_y(y + 17)
+        pdf.set_y(y + 14)
 
-    # Footer branding
-    pdf.set_y(pdf.h - 40)
+    # Footer branding — placed right after action items
+    pdf.set_y(pdf.get_y() + 4)
     pdf.set_draw_color(*BRAND_WARM)
     pdf.set_line_width(0.3)
     pdf.line(15, pdf.get_y(), pdf.w - 15, pdf.get_y())
@@ -971,8 +1040,18 @@ def _render_closing(pdf: BrandedPDF, data: AuditResponse) -> None:
     if pdf.logo_path:
         try:
             pdf.image(pdf.logo_path, (pdf.w - 40) / 2, pdf.get_y(), w=40)
+            pdf.set_y(pdf.get_y() + 14)
         except Exception:
             pass
+
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(*BRAND_ACCENT)
+    pdf.set_x(15)
+    pdf.cell(0, 5, "Prepared for Rikumo  |  Japanese Life Store", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(*GREY)
+    pdf.set_x(15)
+    pdf.cell(0, 4, "Confidential  -  For internal use only", align="C")
 
 
 # ===================================================================
@@ -986,8 +1065,9 @@ def generate_branded_pdf(data: AuditResponse, logo_path: str | None = None) -> b
     _render_summary(pdf, data)
     _render_scorecard(pdf, data)
 
-    # Category details
-    pdf.add_page()
+    # Category details — flow from scorecard if room
+    if pdf.get_y() + 40 > pdf._bottom:
+        pdf.add_page()
     pdf._section_title("Category Details")
 
     sorted_cats = sorted(data.categories, key=lambda c: CATEGORY_WEIGHTS.get(c.name, 0), reverse=True)

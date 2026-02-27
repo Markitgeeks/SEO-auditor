@@ -34,6 +34,9 @@ CATEGORY_LABELS: dict[str, str] = {
     "robots": "Robots.txt",
     "tracking": "Tracking & Pixels",
     "semantic": "Semantic Structure",
+    "ads_quality": "Ads Landing Page Quality",
+    "serp_features": "SERP Feature Eligibility",
+    "accessibility": "Accessibility (WAVE)",
 }
 
 CATEGORY_DESCRIPTIONS: dict[str, str] = {
@@ -43,11 +46,14 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
     "links": "Internal/external link counts, empty hrefs, nofollow usage.",
     "performance": "Response time, page size, HTTPS, render-blocking scripts.",
     "mobile": "Viewport meta tag, responsive design, fixed-width elements.",
-    "structured_data": "JSON-LD, Microdata, RDFa structured markup.",
+    "structured_data": "JSON-LD, Microdata, RDFa, OpenGraph, Dublin Core with rich snippet validation.",
     "sitemap": "Sitemap.xml accessibility, URL entries, freshness.",
     "robots": "Robots.txt rules, sitemap reference, crawl permissions.",
     "tracking": "Analytics (GA4), Tag Manager, verification tags, marketing pixels.",
     "semantic": "HTML5 semantic elements, ARIA roles, content-to-HTML ratio.",
+    "ads_quality": "HTTPS, load speed, mobile viewport, content depth, CTAs, conversion tracking.",
+    "serp_features": "Schema-based SERP eligibility, sitelinks, image pack, meta robots checks.",
+    "accessibility": "WCAG compliance via WAVE: errors, contrast, alerts, ARIA, structural elements.",
 }
 
 SEVERITY_COLORS: dict[str, tuple[int, int, int]] = {

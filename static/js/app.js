@@ -7,6 +7,15 @@ const results = document.getElementById('results');
 const categoriesGrid = document.getElementById('categories-grid');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
 
+const crawlForm = document.getElementById('crawl-form');
+const crawlUrlInput = document.getElementById('crawl-url-input');
+const crawlMaxPages = document.getElementById('crawl-max-pages');
+const crawlBtn = document.getElementById('crawl-btn');
+const crawlErrorMsg = document.getElementById('crawl-error-msg');
+const crawlLoading = document.getElementById('crawl-loading');
+const crawlResults = document.getElementById('crawl-results');
+const crawlResultsContent = document.getElementById('crawl-results-content');
+
 window._lastAuditData = null;
 
 const CATEGORY_LABELS = {
@@ -21,6 +30,10 @@ const CATEGORY_LABELS = {
     robots: 'Robots.txt',
     tracking: 'Tracking & Pixels',
     semantic: 'Semantic Structure',
+    ads_quality: 'Ads Landing Page Quality',
+    serp_features: 'SERP Feature Eligibility',
+    accessibility: 'Accessibility (WAVE)',
+    crawl: 'Site Crawl Analysis',
 };
 
 const CATEGORY_ICONS = {
@@ -35,6 +48,9 @@ const CATEGORY_ICONS = {
     robots: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>',
     tracking: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
     semantic: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>',
+    ads_quality: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>',
+    serp_features: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>',
+    accessibility: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>',
 };
 
 function scoreColor(score) {
@@ -137,6 +153,95 @@ function toggleIssues(id) {
     document.getElementById(id).classList.toggle('open');
 }
 
+// --- Crawl results rendering ---
+
+function renderCrawlResults(data) {
+    const color = scoreColor(data.score);
+    let html = `
+        <div class="text-center mb-6">
+            <h2 class="text-xl font-bold mb-1">Site Crawl Results</h2>
+            <p class="text-slate-400 text-sm">${escapeHtml(data.url)}</p>
+            <div class="mt-3">
+                <span class="text-3xl font-bold" style="color:${color}">${data.score}</span>
+                <span class="text-slate-400 text-sm ml-1">/ 100</span>
+            </div>
+            <p class="text-slate-500 text-xs mt-1">${data.pages_crawled} pages crawled, max depth ${data.max_depth}</p>
+        </div>
+    `;
+
+    // Issues
+    if (data.issues && data.issues.length) {
+        html += '<div class="category-card mb-4"><div class="p-4">';
+        html += '<h3 class="font-semibold mb-3">Crawl Issues</h3>';
+        data.issues.forEach(issue => {
+            html += `<div class="issue-item">${severityIcon(issue.severity)}<span class="text-slate-300">${escapeHtml(issue.message)}</span></div>`;
+        });
+        html += '</div></div>';
+    }
+
+    // Broken links table
+    if (data.broken_links && data.broken_links.length) {
+        html += '<div class="category-card mb-4"><div class="p-4">';
+        html += `<h3 class="font-semibold mb-3 text-red-400">Broken Links (${data.broken_links.length})</h3>`;
+        html += '<div class="overflow-x-auto"><table class="w-full text-sm text-left">';
+        html += '<thead><tr class="text-slate-400 border-b border-slate-700"><th class="pb-2">Target URL</th><th class="pb-2">Status</th><th class="pb-2">Source</th></tr></thead><tbody>';
+        data.broken_links.forEach(bl => {
+            html += `<tr class="border-b border-slate-800"><td class="py-1.5 text-slate-300 break-all">${escapeHtml(bl.target_url)}</td><td class="py-1.5 text-red-400">${bl.status_code || 'Timeout'}</td><td class="py-1.5 text-slate-500 break-all">${escapeHtml(bl.source_url)}</td></tr>`;
+        });
+        html += '</tbody></table></div></div></div>';
+    }
+
+    // Duplicate titles
+    if (data.duplicate_titles && data.duplicate_titles.length) {
+        html += '<div class="category-card mb-4"><div class="p-4">';
+        html += `<h3 class="font-semibold mb-3 text-yellow-400">Duplicate Titles (${data.duplicate_titles.length})</h3>`;
+        data.duplicate_titles.forEach(dt => {
+            html += `<div class="mb-2"><p class="text-slate-300 text-sm font-medium">"${escapeHtml(dt.value)}"</p>`;
+            dt.pages.forEach(p => { html += `<p class="text-slate-500 text-xs ml-3">- ${escapeHtml(p)}</p>`; });
+            html += '</div>';
+        });
+        html += '</div></div>';
+    }
+
+    // Duplicate descriptions
+    if (data.duplicate_descriptions && data.duplicate_descriptions.length) {
+        html += '<div class="category-card mb-4"><div class="p-4">';
+        html += `<h3 class="font-semibold mb-3 text-yellow-400">Duplicate Descriptions (${data.duplicate_descriptions.length})</h3>`;
+        data.duplicate_descriptions.forEach(dd => {
+            html += `<div class="mb-2"><p class="text-slate-300 text-sm font-medium">"${escapeHtml(dd.value.substring(0, 80))}..."</p>`;
+            dd.pages.forEach(p => { html += `<p class="text-slate-500 text-xs ml-3">- ${escapeHtml(p)}</p>`; });
+            html += '</div>';
+        });
+        html += '</div></div>';
+    }
+
+    // Orphan pages
+    if (data.orphan_pages && data.orphan_pages.length) {
+        html += '<div class="category-card mb-4"><div class="p-4">';
+        html += `<h3 class="font-semibold mb-3 text-yellow-400">Orphan Pages (${data.orphan_pages.length})</h3>`;
+        data.orphan_pages.forEach(p => {
+            html += `<p class="text-slate-400 text-sm">- ${escapeHtml(p)}</p>`;
+        });
+        html += '</div></div>';
+    }
+
+    // Pages table
+    if (data.pages && data.pages.length) {
+        html += '<div class="category-card mb-4"><div class="p-4">';
+        html += `<h3 class="font-semibold mb-3">Pages Crawled (${data.pages.length})</h3>`;
+        html += '<div class="overflow-x-auto"><table class="w-full text-sm text-left">';
+        html += '<thead><tr class="text-slate-400 border-b border-slate-700"><th class="pb-2">URL</th><th class="pb-2">Title</th><th class="pb-2">Links</th><th class="pb-2">Depth</th></tr></thead><tbody>';
+        data.pages.forEach(p => {
+            html += `<tr class="border-b border-slate-800"><td class="py-1.5 text-slate-300 break-all">${escapeHtml(p.url)}</td><td class="py-1.5 text-slate-400">${escapeHtml(p.title || '(none)')}</td><td class="py-1.5 text-slate-500">${p.internal_links}</td><td class="py-1.5 text-slate-500">${p.depth}</td></tr>`;
+        });
+        html += '</tbody></table></div></div></div>';
+    }
+
+    return html;
+}
+
+// --- Event listeners ---
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = urlInput.value.trim();
@@ -175,6 +280,43 @@ form.addEventListener('submit', async (e) => {
         errorMsg.classList.remove('hidden');
     } finally {
         auditBtn.disabled = false;
+    }
+});
+
+crawlForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = crawlUrlInput.value.trim();
+    const maxPages = parseInt(crawlMaxPages.value, 10) || 10;
+    if (!url) return;
+
+    crawlErrorMsg.classList.add('hidden');
+    crawlResults.classList.add('hidden');
+    crawlLoading.classList.remove('hidden');
+    crawlBtn.disabled = true;
+
+    try {
+        const resp = await fetch('/api/crawl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, max_pages: maxPages }),
+        });
+
+        if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            throw new Error(data.detail || `Crawl error (${resp.status})`);
+        }
+
+        const data = await resp.json();
+        crawlResultsContent.innerHTML = renderCrawlResults(data);
+
+        crawlLoading.classList.add('hidden');
+        crawlResults.classList.remove('hidden');
+    } catch (err) {
+        crawlLoading.classList.add('hidden');
+        crawlErrorMsg.textContent = err.message;
+        crawlErrorMsg.classList.remove('hidden');
+    } finally {
+        crawlBtn.disabled = false;
     }
 });
 

@@ -4,11 +4,15 @@ from .images import analyze_images
 from .links import analyze_links
 from .performance import analyze_performance
 from .mobile import analyze_mobile
-from .structured_data import analyze_structured_data
+from .schema_org import analyze_structured_data
 from .sitemap import analyze_sitemap
 from .robots import analyze_robots
 from .tracking import analyze_tracking
 from .semantic import analyze_semantic
+from .ads_quality import analyze_ads_quality
+from .serp_features import analyze_serp_features
+from .accessibility import analyze_accessibility
+from .crawl import analyze_crawl
 
 __all__ = [
     "analyze_meta_tags",
@@ -22,4 +26,8 @@ __all__ = [
     "analyze_robots",
     "analyze_tracking",
     "analyze_semantic",
+    "analyze_ads_quality",
+    "analyze_serp_features",
+    "analyze_accessibility",
+    "analyze_crawl",
 ]
