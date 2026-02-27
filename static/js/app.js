@@ -5,6 +5,9 @@ const errorMsg = document.getElementById('error-msg');
 const loading = document.getElementById('loading');
 const results = document.getElementById('results');
 const categoriesGrid = document.getElementById('categories-grid');
+const downloadPdfBtn = document.getElementById('download-pdf-btn');
+
+window._lastAuditData = null;
 
 const CATEGORY_LABELS = {
     meta_tags: 'Meta Tags',
@@ -157,6 +160,7 @@ form.addEventListener('submit', async (e) => {
         }
 
         const data = await resp.json();
+        window._lastAuditData = data;
 
         // Render results
         document.getElementById('audited-url').textContent = data.url;
@@ -171,5 +175,38 @@ form.addEventListener('submit', async (e) => {
         errorMsg.classList.remove('hidden');
     } finally {
         auditBtn.disabled = false;
+    }
+});
+
+downloadPdfBtn.addEventListener('click', async () => {
+    if (!window._lastAuditData) return;
+
+    downloadPdfBtn.disabled = true;
+    const origText = downloadPdfBtn.innerHTML;
+    downloadPdfBtn.innerHTML = `<svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg> Generating PDF...`;
+
+    try {
+        const resp = await fetch('/api/report/pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(window._lastAuditData),
+        });
+
+        if (!resp.ok) throw new Error('PDF generation failed');
+
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'seo-audit-report.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Failed to generate PDF: ' + err.message);
+    } finally {
+        downloadPdfBtn.innerHTML = origText;
+        downloadPdfBtn.disabled = false;
     }
 });

@@ -2,9 +2,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from app.models import AuditRequest, AuditResponse, CategoryResult
+from app.report import generate_pdf
 from app.fetcher import fetch_page
 from app.scoring import compute_overall_score
 from app.analyzers import (
@@ -76,3 +77,13 @@ async def run_audit(req: AuditRequest):
     overall = compute_overall_score(categories)
 
     return AuditResponse(url=url, overall_score=overall, categories=categories)
+
+
+@app.post("/api/report/pdf")
+async def export_pdf(data: AuditResponse):
+    pdf_bytes = generate_pdf(data)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=seo-audit-report.pdf"},
+    )
