@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Auditor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl font-bold mb-2">SEO Auditor</h1>
+            <p class="text-slate-400">Analyze any URL across 9 SEO categories</p>
+        </header>
+
+        <!-- Input -->
+        <form id="audit-form" class="max-w-2xl mx-auto mb-10">
+            <div class="flex gap-3">
+                <input
+                    id="url-input"
+                    type="url"
+                    placeholder="https://example.com"
+                    required
+                    class="flex-1 px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                <button
+                    type="submit"
+                    id="audit-btn"
+                    class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Audit
+                </button>
+            </div>
+            <p id="error-msg" class="text-red-400 text-sm mt-2 hidden"></p>
+        </form>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden flex flex-col items-center gap-3 mb-10">
+            <div class="spinner"></div>
+            <p class="text-slate-400">Analyzing page...</p>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="hidden fade-in">
+            <!-- Overall Score -->
+            <div class="flex flex-col items-center mb-10">
+                <div class="score-gauge">
+                    <svg width="180" height="180" viewBox="0 0 180 180">
+                        <circle class="bg-ring" cx="90" cy="90" r="78" fill="none" stroke-width="12"/>
+                        <circle id="score-ring" class="fg-ring" cx="90" cy="90" r="78" fill="none" stroke-width="12"
+                            stroke-dasharray="490" stroke-dashoffset="490" stroke-linecap="round"/>
+                    </svg>
+                    <div class="score-text">
+                        <span id="overall-score">0</span>
+                        <span class="score-label">Overall</span>
+                    </div>
+                </div>
+                <p id="audited-url" class="text-slate-400 text-sm mt-3"></p>
+            </div>
+
+            <!-- Category Grid -->
+            <div id="categories-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
