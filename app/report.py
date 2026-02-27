@@ -58,6 +58,31 @@ SEVERITY_COLORS: dict[str, tuple[int, int, int]] = {
 }
 
 
+_UNICODE_REPLACEMENTS: dict[str, str] = {
+    "\u2014": "-",   # em dash
+    "\u2013": "-",   # en dash
+    "\u2018": "'",   # left single quote
+    "\u2019": "'",   # right single quote
+    "\u201c": '"',   # left double quote
+    "\u201d": '"',   # right double quote
+    "\u2026": "...", # ellipsis
+    "\u2022": "-",   # bullet
+    "\u00a0": " ",   # non-breaking space
+    "\u2192": "->",  # right arrow
+    "\u2190": "<-",  # left arrow
+    "\u2713": "v",   # checkmark
+    "\u2717": "x",   # ballot x
+}
+
+
+def _safe_text(text: str) -> str:
+    """Replace Unicode characters that Helvetica cannot render."""
+    for orig, repl in _UNICODE_REPLACEMENTS.items():
+        text = text.replace(orig, repl)
+    # Strip any remaining non-latin1 characters
+    return text.encode("latin-1", errors="replace").decode("latin-1")
+
+
 def _score_color(score: int) -> tuple[int, int, int]:
     if score >= 80:
         return GREEN
@@ -148,7 +173,7 @@ def _render_cover(pdf: SEOReportPDF, data: AuditResponse) -> None:
     pdf.set_font("Helvetica", "", 13)
     pdf._set_color(GREY)
     pdf.set_y(72)
-    pdf.cell(0, 8, data.url, align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, _safe_text(data.url), align="C", new_x="LMARGIN", new_y="NEXT")
 
     # Date
     now = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
@@ -385,7 +410,7 @@ def _render_category_detail(pdf: SEOReportPDF, cat: CategoryResult) -> None:
         pdf.set_font("Helvetica", "I", 8)
         pdf._set_color(GREY)
         pdf.set_x(17)
-        pdf.cell(0, 5, desc, new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 5, _safe_text(desc), new_x="LMARGIN", new_y="NEXT")
         pdf.set_y(pdf.get_y() + 2)
 
     # Issues table
@@ -413,7 +438,7 @@ def _render_category_detail(pdf: SEOReportPDF, cat: CategoryResult) -> None:
             text_x = 17 + badge_w + 3
             text_w = pdf.w - text_x - 17
             pdf.set_xy(text_x, iy)
-            pdf.multi_cell(text_w, 4.5, issue.message)
+            pdf.multi_cell(text_w, 4.5, _safe_text(issue.message))
             # Ensure minimum row height
             if pdf.get_y() < iy + 6:
                 pdf.set_y(iy + 6)
@@ -476,7 +501,7 @@ def _render_recommendations(pdf: SEOReportPDF, data: AuditResponse) -> None:
             pdf.set_font("Helvetica", "", 8)
             pdf._set_color(LIGHT_TEXT)
             pdf.set_x(20)
-            pdf.multi_cell(pdf.w - 40, 4.5, f"- {issue.message}")
+            pdf.multi_cell(pdf.w - 40, 4.5, f"- {_safe_text(issue.message)}")
 
         pdf.set_y(pdf.get_y() + 3)
 
@@ -530,7 +555,7 @@ def _render_recommendations(pdf: SEOReportPDF, data: AuditResponse) -> None:
             pdf.set_font("Helvetica", "", 8)
             pdf._set_color(LIGHT_TEXT)
             pdf.set_x(20)
-            pdf.multi_cell(pdf.w - 40, 4.5, f"- {issue.message}")
+            pdf.multi_cell(pdf.w - 40, 4.5, f"- {_safe_text(issue.message)}")
 
         pdf.set_y(pdf.get_y() + 3)
 
@@ -577,4 +602,4 @@ def generate_pdf(data: AuditResponse) -> bytes:
 
     _render_recommendations(pdf, data)
 
-    return pdf.output()
+    return bytes(pdf.output())
