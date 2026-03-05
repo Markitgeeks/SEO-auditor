@@ -26,6 +26,13 @@ const $includeCrawlCb = document.getElementById('include-crawl');
 const $includeExternalCb = document.getElementById('include-external');
 const $crawlMaxPages = document.getElementById('crawl-max-pages');
 const $crawlPagesWrapper = document.getElementById('crawl-pages-wrapper');
+const $includePsiCb = document.getElementById('include-psi');
+const $includeSchemaCb = document.getElementById('include-schema');
+const $keywordBtn = document.getElementById('keyword-btn');
+const $adminModal = document.getElementById('admin-modal');
+const $adminTokenInput = document.getElementById('admin-token-input');
+const $adminTokenSubmit = document.getElementById('admin-token-submit');
+const $adminModalClose = document.getElementById('admin-modal-close');
 
 window._lastAuditData = null;
 
@@ -41,7 +48,7 @@ Store.subscribe((changed, state) => {
     }
 
     // Main content re-render
-    if (changed.some(k => ['auditData', 'selectedCategory', 'activeTab', 'issueFilter', 'issueSort', 'issuePage', 'issueSearch'].includes(k))) {
+    if (changed.some(k => ['auditData', 'selectedCategory', 'activeTab', 'issueFilter', 'issueSort', 'issuePage', 'issueSearch', 'keywordData', 'keywordEnabled', 'keywordSort'].includes(k))) {
         renderMainView(state);
     }
 
@@ -125,6 +132,22 @@ function renderMainView(state) {
 
     if (selected === 'intel' && state.auditData.external_insights) {
         $mainContent.innerHTML = renderIntelPanel(state.auditData.external_insights);
+        return;
+    }
+
+    if (selected === 'pagespeed' && state.auditData.pagespeed_insights) {
+        $mainContent.innerHTML = renderPageSpeedPanel(state.auditData.pagespeed_insights);
+        return;
+    }
+
+    if (selected === 'schema_validation' && state.auditData.schema_validation) {
+        $mainContent.innerHTML = renderSchemaValidationPanel(state.auditData.schema_validation);
+        return;
+    }
+
+    if (selected === 'keyword_research' && state.keywordData) {
+        $mainContent.innerHTML = renderKeywordPanel(state.keywordData);
+        bindKeywordSort();
         return;
     }
 
@@ -326,6 +349,13 @@ function bindMainEvents() {
         });
     });
 
+    // Sort pills
+    $mainContent.querySelectorAll('.filter-pill[data-sort]').forEach(pill => {
+        pill.addEventListener('click', () => {
+            Store.set({ issueSort: pill.dataset.sort, issuePage: 0 });
+        });
+    });
+
     // Search input
     const searchInput = $mainContent.querySelector('[data-action="search-issues"]');
     if (searchInput) {
@@ -377,6 +407,30 @@ function bindOverviewLinks() {
     });
 }
 
+// Keyword table column sort
+function bindKeywordSort() {
+    $mainContent.querySelectorAll('[data-kw-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.kwSort;
+            const current = Store.get('keywordSort') || 'volume_desc';
+            const [curCol, curDir] = current.split('_');
+            const newDir = (curCol === col && curDir === 'desc') ? 'asc' : 'desc';
+            Store.set({ keywordSort: `${col}_${newDir}` });
+        });
+    });
+}
+
+// Schema copy buttons (event delegation instead of inline onclick)
+$mainContent.addEventListener('click', (e) => {
+    const copyBtn = e.target.closest('.copy-btn');
+    if (!copyBtn) return;
+    const evidenceBlock = copyBtn.closest('.evidence-block');
+    if (evidenceBlock) {
+        const text = evidenceBlock.childNodes[0]?.textContent || '';
+        navigator.clipboard.writeText(text).catch(() => {});
+    }
+});
+
 
 // ============================================================
 // Form Submit — Audit
@@ -402,6 +456,14 @@ $form.addEventListener('submit', async (e) => {
         if ($includeExternalCb.checked) {
             body.include_external = true;
             body.external_modules = ['similarweb', 'semrush'];
+        }
+
+        if ($includePsiCb && $includePsiCb.checked) {
+            body.include_pagespeed = true;
+        }
+
+        if ($includeSchemaCb && $includeSchemaCb.checked) {
+            body.include_schema_validation = true;
         }
 
         const resp = await fetch(API_BASE + '/api/audit', {
@@ -508,6 +570,9 @@ document.addEventListener('keydown', (e) => {
 
     const categories = state.auditData.categories;
     const allItems = ['overview', ...categories.map(c => c.name)];
+    if (state.auditData.pagespeed_insights && state.auditData.pagespeed_insights.status !== 'not_configured') allItems.push('pagespeed');
+    if (state.auditData.schema_validation) allItems.push('schema_validation');
+    if (Store.get('keywordEnabled')) allItems.push('keyword_research');
     if (state.auditData.crawl_results) allItems.push('crawl');
     if (state.auditData.external_insights) allItems.push('intel');
 
@@ -523,3 +588,85 @@ document.addEventListener('keydown', (e) => {
         Store.set({ selectedCategory: allItems[prev], activeTab: 'summary' });
     }
 });
+
+
+// ============================================================
+// Keyword Research — Admin Token + Fetch
+// ============================================================
+
+// Check keyword status on load
+(async function checkKeywordStatus() {
+    try {
+        const resp = await fetch(API_BASE + '/api/keywords/status');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.enabled && $keywordBtn) {
+                $keywordBtn.classList.remove('hidden');
+            }
+        }
+    } catch (e) { /* ignore */ }
+})();
+
+if ($keywordBtn) {
+    $keywordBtn.addEventListener('click', () => {
+        if (Store.get('adminToken')) {
+            // Already authenticated — fetch keywords
+            _fetchKeywords();
+        } else {
+            // Show modal
+            $adminModal.classList.remove('hidden');
+            $adminTokenInput.focus();
+        }
+    });
+}
+
+if ($adminModalClose) {
+    $adminModalClose.addEventListener('click', () => {
+        $adminModal.classList.add('hidden');
+    });
+}
+
+if ($adminTokenSubmit) {
+    $adminTokenSubmit.addEventListener('click', () => {
+        const token = $adminTokenInput.value.trim();
+        if (!token) return;
+        Store.set({ adminToken: token, keywordEnabled: true });
+        $adminModal.classList.add('hidden');
+        _fetchKeywords();
+    });
+}
+
+async function _fetchKeywords() {
+    const state = Store.get();
+    const url = state.auditData ? state.auditData.url : ($urlInput ? $urlInput.value.trim() : '');
+    if (!url) return;
+
+    const token = Store.get('adminToken');
+    if (!token) return;
+
+    try {
+        const resp = await fetch(API_BASE + '/api/keywords/suggest', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Admin-Token': token,
+            },
+            body: JSON.stringify({ url }),
+        });
+
+        if (resp.status === 403) {
+            Store.set({ adminToken: null, keywordEnabled: false });
+            $adminModal.classList.remove('hidden');
+            $adminTokenInput.value = '';
+            $adminTokenInput.placeholder = 'Invalid token, try again...';
+            return;
+        }
+
+        if (!resp.ok) throw new Error('Keyword fetch failed');
+
+        const data = await resp.json();
+        Store.set({ keywordData: data, selectedCategory: 'keyword_research' });
+    } catch (err) {
+        alert('Keyword research error: ' + err.message);
+    }
+}

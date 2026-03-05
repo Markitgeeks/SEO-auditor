@@ -60,6 +60,9 @@ const CATEGORY_LABELS = {
     ads_quality: 'Ads Landing Page',
     serp_features: 'SERP Features',
     accessibility: 'Accessibility',
+    pagespeed_insights: 'Performance Lab',
+    schema_validation: 'Schema Validation',
+    keyword_research: 'Keyword Research',
 };
 
 const CATEGORY_ICONS = {
@@ -77,6 +80,9 @@ const CATEGORY_ICONS = {
     ads_quality: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>',
     serp_features: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>',
     accessibility: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>',
+    pagespeed_insights: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+    schema_validation: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
+    keyword_research: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>',
 };
 
 // --- KPI formatting helpers ---
@@ -146,6 +152,22 @@ const METRIC_LABELS = {
     alert_count: { label: 'Alerts', unit: '', good: v => v === 0 },
     feature_count: { label: 'Features', unit: '' },
     aria_count: { label: 'ARIA Attrs', unit: '' },
+    // PSI metrics
+    mobile_score: { label: 'Mobile Score', unit: '', good: v => v >= 90 },
+    desktop_score: { label: 'Desktop Score', unit: '', good: v => v >= 90 },
+    mobile_lcp_ms: { label: 'Mobile LCP', unit: 'ms', good: v => v < 2500 },
+    desktop_lcp_ms: { label: 'Desktop LCP', unit: 'ms', good: v => v < 2500 },
+    mobile_cls: { label: 'Mobile CLS', unit: '', good: v => v < 0.1 },
+    desktop_cls: { label: 'Desktop CLS', unit: '', good: v => v < 0.1 },
+    mobile_tbt_ms: { label: 'Mobile TBT', unit: 'ms', good: v => v < 300 },
+    desktop_tbt_ms: { label: 'Desktop TBT', unit: 'ms', good: v => v < 300 },
+    // Schema validation metrics
+    entities_found: { label: 'Entities', unit: '' },
+    syntax_errors: { label: 'Syntax Errors', unit: '', good: v => v === 0 },
+    type_errors: { label: 'Type Errors', unit: '', good: v => v === 0 },
+    property_warnings: { label: 'Prop Warnings', unit: '', good: v => v === 0 },
+    valid_entities_pct: { label: 'Valid Entities', unit: '%', good: v => v === 100 },
+    rdfa_count: { label: 'RDFa', unit: '' },
 };
 
 
@@ -195,6 +217,42 @@ function renderSidebar(categories, selected, auditData) {
                 <span class="sidebar-item__score" style="color:${scoreColorRaw(cat.score)}">${cat.score}</span>
                 ${errorCount > 0 ? `<span class="sidebar-item__badge">${errorCount}</span>` : ''}
             </button>`;
+    }
+
+    // --- New module sidebar items (divider + PSI + Schema) ---
+    const hasNewModules = (auditData && auditData.pagespeed_insights) || (auditData && auditData.schema_validation);
+    if (hasNewModules || (Store.get('keywordEnabled'))) {
+        html += '<div class="sidebar-divider"></div>';
+    }
+
+    if (auditData && auditData.pagespeed_insights && auditData.pagespeed_insights.status !== 'not_configured') {
+        const psi = auditData.pagespeed_insights;
+        const psiScore = psi.mobile ? psi.mobile.score : (psi.desktop ? psi.desktop.score : 0);
+        const isSelected = selected === 'pagespeed';
+        html += `<button class="sidebar-item ${isSelected ? 'sidebar-item--selected' : ''}" data-category="pagespeed">
+            <span class="sidebar-item__icon" style="color:${scoreColorRaw(psiScore)}">${CATEGORY_ICONS.pagespeed_insights}</span>
+            <span class="sidebar-item__label">Performance Lab</span>
+            <span class="sidebar-item__score" style="color:${scoreColorRaw(psiScore)}">${psiScore}</span>
+        </button>`;
+    }
+
+    if (auditData && auditData.schema_validation) {
+        const sv = auditData.schema_validation;
+        const svValid = sv.metrics ? sv.metrics.valid_entities_pct : 100;
+        const svColor = svValid === 100 ? '#008060' : svValid >= 50 ? '#b98900' : '#d72c0d';
+        const isSelected = selected === 'schema_validation';
+        html += `<button class="sidebar-item ${isSelected ? 'sidebar-item--selected' : ''}" data-category="schema_validation">
+            <span class="sidebar-item__icon" style="color:${svColor}">${CATEGORY_ICONS.schema_validation}</span>
+            <span class="sidebar-item__label">Schema Validation</span>
+        </button>`;
+    }
+
+    if (Store.get('keywordEnabled')) {
+        const isSelected = selected === 'keyword_research';
+        html += `<button class="sidebar-item ${isSelected ? 'sidebar-item--selected' : ''}" data-category="keyword_research">
+            <span class="sidebar-item__icon" style="color:#005bd3">${CATEGORY_ICONS.keyword_research}</span>
+            <span class="sidebar-item__label">Keyword Research</span>
+        </button>`;
     }
 
     // Crawl & Intel sidebar items
@@ -413,6 +471,10 @@ function renderIssueList(issues, filter, sort, page, search) {
         ${['all', 'error', 'warning', 'info', 'pass'].map(f =>
             `<button class="filter-pill ${filter === f ? 'filter-pill--active' : ''} ${f !== 'all' ? 'filter-pill--' + f : ''}" data-filter="${f}">${f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)} (${counts[f]})</button>`
         ).join('')}
+        <div class="filter-sort">
+            <button class="filter-pill ${sort === 'severity' ? 'filter-pill--active' : ''}" data-sort="severity" title="Sort by severity">Severity</button>
+            <button class="filter-pill ${sort === 'impact' ? 'filter-pill--active' : ''}" data-sort="impact" title="Sort by impact">Impact</button>
+        </div>
         <div class="filter-search">
             <input type="text" class="filter-search__input" placeholder="Search issues..." value="${escapeHtml(search || '')}" data-action="search-issues">
         </div>
@@ -618,4 +680,262 @@ function renderMainSkeleton() {
         <div class="skeleton skeleton--bar" style="margin-bottom:24px"></div>
         <div class="kpi-grid">${'<div class="skeleton skeleton--card"></div>'.repeat(4)}</div>
     </div>`;
+}
+
+
+// ============================================================
+// Render: PageSpeed Insights Panel
+// ============================================================
+
+function renderPageSpeedPanel(psiData) {
+    if (!psiData) return '';
+
+    let html = `<div class="category-header"><div class="category-header__title">
+        <span class="category-header__icon" style="color:#005bd3">${CATEGORY_ICONS.pagespeed_insights}</span>
+        <h2 class="Polaris-Text--headingLg">Performance Lab</h2>
+    </div>
+    ${psiData.duration_ms != null ? `<span class="Polaris-Text--bodySm Polaris-Text--subdued">${psiData.duration_ms}ms${psiData.cached ? ' (cached)' : ''}</span>` : ''}
+    </div>`;
+
+    if (psiData.status === 'error') {
+        html += `<div class="Polaris-Banner Polaris-Banner--warning mb-400"><span>Error: ${escapeHtml(psiData.error_message || 'Unknown')}</span></div>`;
+        return html;
+    }
+
+    // Dual score gauges
+    html += '<div class="score-gauge-pair mb-400">';
+    for (const [label, strategy] of [['Mobile', psiData.mobile], ['Desktop', psiData.desktop]]) {
+        if (!strategy) continue;
+        const s = strategy.score;
+        const color = scoreColorRaw(s);
+        const circumference = 213.6;
+        const offset = circumference - (s / 100) * circumference;
+        html += `<div class="score-gauge-mini">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+                <circle class="bg-ring" cx="50" cy="50" r="34" fill="none" stroke-width="6"/>
+                <circle cx="50" cy="50" r="34" fill="none" stroke-width="6"
+                    stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
+                    style="stroke:${color};transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 1s ease"/>
+            </svg>
+            <div class="score-gauge-mini__value" style="color:${color}">${s}</div>
+            <p class="Polaris-Text--bodySm Polaris-Text--subdued mt-100">${label}</p>
+        </div>`;
+    }
+    html += '</div>';
+
+    // KPI cards
+    if (psiData.metrics) {
+        html += '<div class="kpi-grid mb-400">';
+        for (const [key, value] of Object.entries(psiData.metrics)) {
+            if (value != null) html += renderKPICard(key, value);
+        }
+        html += '</div>';
+    }
+
+    // Opportunities
+    for (const [label, strategy] of [['Mobile', psiData.mobile], ['Desktop', psiData.desktop]]) {
+        if (!strategy || !strategy.opportunities || !strategy.opportunities.length) continue;
+        html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">${label} Opportunities</h3></div>
+            <div class="Polaris-Card__Section" style="padding:0"><div class="overflow-x"><table class="Polaris-DataTable"><thead><tr><th>Opportunity</th><th>Savings</th></tr></thead><tbody>`;
+        strategy.opportunities.forEach(opp => {
+            html += `<tr><td>${escapeHtml(opp.title)}</td><td style="text-align:right;white-space:nowrap">${opp.savings_ms != null ? opp.savings_ms + 'ms' : '-'}</td></tr>`;
+        });
+        html += '</tbody></table></div></div></div>';
+    }
+
+    // Diagnostics
+    for (const [label, strategy] of [['Mobile', psiData.mobile], ['Desktop', psiData.desktop]]) {
+        if (!strategy || !strategy.diagnostics || !strategy.diagnostics.length) continue;
+        html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">${label} Diagnostics</h3></div><div class="Polaris-Card__Section">`;
+        strategy.diagnostics.forEach(d => {
+            html += `<div class="issue-item"><span class="severity-icon severity-info">i</span><span>${escapeHtml(d.title)}</span></div>`;
+        });
+        html += '</div></div>';
+    }
+
+    // Issues
+    if (psiData.issues && psiData.issues.length) {
+        html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Issues</h3></div><div class="Polaris-Card__Section">`;
+        psiData.issues.forEach(issue => {
+            html += `<div class="issue-item">${severityIcon(issue.severity)}<div>
+                <span>${escapeHtml(issue.message)}</span>
+                ${issue.recommendation ? `<p class="Polaris-Text--bodySm Polaris-Text--subdued mt-100">${escapeHtml(issue.recommendation)}</p>` : ''}
+            </div></div>`;
+        });
+        html += '</div></div>';
+    }
+
+    return html;
+}
+
+
+// ============================================================
+// Render: Schema Validation Panel
+// ============================================================
+
+function renderSchemaValidationPanel(schemaData) {
+    if (!schemaData) return '';
+
+    let html = `<div class="category-header"><div class="category-header__title">
+        <span class="category-header__icon" style="color:#005bd3">${CATEGORY_ICONS.schema_validation}</span>
+        <h2 class="Polaris-Text--headingLg">Schema Validation</h2>
+    </div>
+    ${schemaData.duration_ms != null ? `<span class="Polaris-Text--bodySm Polaris-Text--subdued">${schemaData.duration_ms}ms</span>` : ''}
+    </div>`;
+
+    if (schemaData.status === 'error') {
+        html += `<div class="Polaris-Banner Polaris-Banner--warning mb-400"><span>Error: ${escapeHtml(schemaData.error_message || 'Unknown')}</span></div>`;
+    }
+
+    // Metrics KPI cards
+    if (schemaData.metrics) {
+        html += '<div class="kpi-grid mb-400">';
+        for (const [key, value] of Object.entries(schemaData.metrics)) {
+            if (value != null) html += renderKPICard(key, value);
+        }
+        html += '</div>';
+    }
+
+    // Severity distribution
+    if (schemaData.issues && schemaData.issues.length) {
+        const counts = { error: 0, warning: 0, info: 0, pass: 0 };
+        schemaData.issues.forEach(i => counts[i.severity]++);
+        const total = schemaData.issues.length;
+        html += `<div class="severity-bar-container mb-400">
+            <p class="Polaris-Text--bodySm Polaris-Text--subdued mb-200">Issue Distribution</p>
+            <div class="severity-bar">
+                ${counts.error ? `<div class="severity-bar__segment severity-bar__segment--error" style="width:${(counts.error/total*100)}%"></div>` : ''}
+                ${counts.warning ? `<div class="severity-bar__segment severity-bar__segment--warning" style="width:${(counts.warning/total*100)}%"></div>` : ''}
+                ${counts.info ? `<div class="severity-bar__segment severity-bar__segment--info" style="width:${(counts.info/total*100)}%"></div>` : ''}
+                ${counts.pass ? `<div class="severity-bar__segment severity-bar__segment--pass" style="width:${(counts.pass/total*100)}%"></div>` : ''}
+            </div>
+        </div>`;
+    }
+
+    // Entity list
+    if (schemaData.entities && schemaData.entities.length) {
+        html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Entities (${schemaData.entities.length})</h3></div><div class="Polaris-Card__Section"><div class="entity-card-grid">`;
+        schemaData.entities.forEach(entity => {
+            const badge = entity.valid
+                ? '<span class="Polaris-Badge Polaris-Badge--success">Valid</span>'
+                : '<span class="Polaris-Badge Polaris-Badge--critical">Invalid</span>';
+            const sourceBadge = `<span class="Polaris-Badge Polaris-Badge--default">${escapeHtml(entity.source)}</span>`;
+            html += `<div class="entity-card">
+                <div style="display:flex;align-items:center;gap:var(--p-space-200);margin-bottom:var(--p-space-100)">
+                    <strong class="Polaris-Text--bodyMd">${escapeHtml(entity.entity_type)}</strong>
+                    ${badge} ${sourceBadge}
+                </div>
+                <p class="Polaris-Text--bodySm Polaris-Text--subdued">${entity.properties_found.length} properties</p>
+            </div>`;
+        });
+        html += '</div></div></div>';
+    }
+
+    // Issues with evidence
+    if (schemaData.issues && schemaData.issues.length) {
+        html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Issues</h3></div><div class="Polaris-Card__Section">`;
+        schemaData.issues.forEach(issue => {
+            html += `<div class="issue-item">${severityIcon(issue.severity)}<div>
+                <span>${escapeHtml(issue.message)}</span>
+                ${issue.evidence ? `<div class="evidence-block mt-100" style="position:relative">${escapeHtml(issue.evidence)}<button class="copy-btn" title="Copy">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button></div>` : ''}
+                ${issue.recommendation ? `<p class="Polaris-Text--bodySm Polaris-Text--subdued mt-100">${escapeHtml(issue.recommendation)}</p>` : ''}
+            </div></div>`;
+        });
+        html += '</div></div>';
+    }
+
+    return html;
+}
+
+
+// ============================================================
+// Render: Keyword Research Panel
+// ============================================================
+
+function renderKeywordPanel(keywordData) {
+    if (!keywordData) return '';
+
+    let html = `<div class="category-header"><div class="category-header__title">
+        <span class="category-header__icon" style="color:#005bd3">${CATEGORY_ICONS.keyword_research}</span>
+        <h2 class="Polaris-Text--headingLg">Keyword Research</h2>
+    </div>
+    ${keywordData.duration_ms != null ? `<span class="Polaris-Text--bodySm Polaris-Text--subdued">${keywordData.duration_ms}ms${keywordData.cached ? ' (cached)' : ''}</span>` : ''}
+    </div>`;
+
+    if (keywordData.status === 'not_configured') {
+        html += `<div class="Polaris-Banner Polaris-Banner--info mb-400"><span>Google Ads API not configured. Set credentials to enable keyword suggestions.</span></div>`;
+        return html;
+    }
+
+    if (keywordData.status === 'error') {
+        html += `<div class="Polaris-Banner Polaris-Banner--warning mb-400"><span>Error: ${escapeHtml(keywordData.error_message || 'Unknown')}</span></div>`;
+        return html;
+    }
+
+    // KPI cards
+    if (keywordData.metrics_summary) {
+        const ms = keywordData.metrics_summary;
+        html += '<div class="kpi-grid mb-400">';
+        html += renderIntelKPI('Total Ideas', String(ms.total_ideas || 0), 'Google Ads');
+        html += renderIntelKPI('Avg Volume', ms.avg_volume != null ? ms.avg_volume.toLocaleString() : 'N/A', 'Google Ads');
+        html += renderIntelKPI('Max Volume', ms.max_volume != null ? ms.max_volume.toLocaleString() : 'N/A', 'Google Ads');
+        html += renderIntelKPI('Avg Competition', ms.avg_competition_index != null ? ms.avg_competition_index + '/100' : 'N/A', 'Google Ads');
+        html += '</div>';
+    }
+
+    // Keyword table
+    if (keywordData.ideas && keywordData.ideas.length) {
+        // Sort ideas
+        const kwSort = (typeof Store !== 'undefined' && Store.get('keywordSort')) || 'volume_desc';
+        const sortedIdeas = [...keywordData.ideas];
+        const [sortCol, sortDir] = kwSort.split('_');
+        const dirMul = sortDir === 'asc' ? 1 : -1;
+        sortedIdeas.sort((a, b) => {
+            if (sortCol === 'keyword') return dirMul * (a.keyword || '').localeCompare(b.keyword || '');
+            if (sortCol === 'volume') return dirMul * ((a.avg_monthly_searches || 0) - (b.avg_monthly_searches || 0));
+            if (sortCol === 'competition') return dirMul * ((a.competition_index || 0) - (b.competition_index || 0));
+            if (sortCol === 'cpc') return dirMul * ((a.high_cpc_micros || 0) - (b.high_cpc_micros || 0));
+            return 0;
+        });
+
+        const arrow = (col) => {
+            if (!kwSort.startsWith(col)) return '';
+            return sortDir === 'asc' ? ' \u25B2' : ' \u25BC';
+        };
+
+        html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Keyword Ideas (${keywordData.ideas.length})</h3></div>
+            <div class="Polaris-Card__Section" style="padding:0"><div class="overflow-x"><table class="Polaris-DataTable keyword-table">
+            <thead><tr><th data-kw-sort="keyword">Keyword${arrow('keyword')}</th><th data-kw-sort="volume">Volume${arrow('volume')}</th><th data-kw-sort="competition">Competition${arrow('competition')}</th><th data-kw-sort="cpc">CPC Range${arrow('cpc')}</th></tr></thead><tbody>`;
+        sortedIdeas.forEach(idea => {
+            const lowCpc = idea.low_cpc_micros != null ? '$' + (idea.low_cpc_micros / 1000000).toFixed(2) : '-';
+            const highCpc = idea.high_cpc_micros != null ? '$' + (idea.high_cpc_micros / 1000000).toFixed(2) : '-';
+            html += `<tr>
+                <td>${escapeHtml(idea.keyword)}</td>
+                <td style="text-align:right">${idea.avg_monthly_searches != null ? idea.avg_monthly_searches.toLocaleString() : '-'}</td>
+                <td style="text-align:center">${idea.competition || '-'} ${idea.competition_index != null ? `<span class="Polaris-Text--bodySm Polaris-Text--subdued">(${idea.competition_index})</span>` : ''}</td>
+                <td style="text-align:right;white-space:nowrap">${lowCpc} - ${highCpc}</td>
+            </tr>`;
+        });
+        html += '</tbody></table></div></div></div>';
+
+        // Simple histogram (top 10 by volume)
+        const sorted = [...keywordData.ideas].filter(i => i.avg_monthly_searches).sort((a, b) => b.avg_monthly_searches - a.avg_monthly_searches).slice(0, 10);
+        if (sorted.length) {
+            const maxVol = sorted[0].avg_monthly_searches;
+            html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Top Keywords by Volume</h3></div><div class="Polaris-Card__Section">`;
+            sorted.forEach(idea => {
+                const pct = maxVol > 0 ? (idea.avg_monthly_searches / maxVol * 100) : 0;
+                html += `<div class="keyword-bar-row">
+                    <span class="keyword-bar-label">${escapeHtml(idea.keyword)}</span>
+                    <div class="keyword-bar-track"><div class="keyword-bar-fill" style="width:${pct}%"></div></div>
+                    <span class="keyword-bar-value">${idea.avg_monthly_searches.toLocaleString()}</span>
+                </div>`;
+            });
+            html += '</div></div>';
+        }
+    }
+
+    return html;
 }

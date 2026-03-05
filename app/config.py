@@ -50,3 +50,24 @@ EXTERNAL_MODULE_TIMEOUT = 30  # total timeout for all external modules
 # --- Cache ---
 CACHE_TTL_SECONDS = 3600  # 1 hour
 CACHE_MAX_ENTRIES = 200
+
+# --- PageSpeed Insights ---
+PAGESPEED_API_KEY = os.environ.get("PAGESPEED_API_KEY", "")
+PAGESPEED_TIMEOUT = 25
+PAGESPEED_CACHE_TTL = 21600  # 6h
+PAGESPEED_RPM = 30
+
+# --- Schema Validator ---
+SCHEMA_DEFS_CACHE_TTL = 604800  # 7 days
+
+# --- Keyword Planner (privilege-gated) ---
+FEATURE_KEYWORD_PLANNER_ENABLED = os.environ.get("FEATURE_KEYWORD_PLANNER_ENABLED", "false").lower() == "true"
+KEYWORD_PLANNER_ADMIN_TOKEN = os.environ.get("KEYWORD_PLANNER_ADMIN_TOKEN", "")
+GOOGLE_ADS_DEVELOPER_TOKEN = os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN", "")
+GOOGLE_ADS_CLIENT_ID = os.environ.get("GOOGLE_ADS_CLIENT_ID", "")
+GOOGLE_ADS_CLIENT_SECRET = os.environ.get("GOOGLE_ADS_CLIENT_SECRET", "")
+GOOGLE_ADS_REFRESH_TOKEN = os.environ.get("GOOGLE_ADS_REFRESH_TOKEN", "")
+GOOGLE_ADS_LOGIN_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "")
+GOOGLE_ADS_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_CUSTOMER_ID", "")
+KEYWORD_CACHE_TTL = 86400  # 24h
+KEYWORD_RPM = 10

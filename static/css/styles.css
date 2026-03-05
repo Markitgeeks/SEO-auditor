@@ -1131,6 +1131,14 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
 .filter-pill--info.filter-pill--active { background: #0073b0; border-color: #0073b0; }
 .filter-pill--pass.filter-pill--active { background: #008060; border-color: #008060; }
 
+.filter-sort {
+    display: flex;
+    gap: var(--p-space-100);
+    margin-left: var(--p-space-200);
+    padding-left: var(--p-space-200);
+    border-left: 1px solid var(--p-color-border);
+}
+
 .filter-search { margin-left: auto; }
 
 .filter-search__input {
@@ -1332,6 +1340,189 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
    Mobile Responsive
    ============================================================ */
 
+/* ============================================================
+   Sidebar Divider
+   ============================================================ */
+
+.sidebar-divider {
+    height: 1px;
+    background: var(--p-color-border);
+    margin: var(--p-space-200) var(--p-space-400);
+}
+
+
+/* ============================================================
+   Score Gauge Pair (PSI mobile + desktop)
+   ============================================================ */
+
+.score-gauge-pair {
+    display: flex;
+    justify-content: center;
+    gap: var(--p-space-800);
+    padding: var(--p-space-400) 0;
+}
+
+.score-gauge-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.score-gauge-mini svg {
+    display: block;
+}
+
+.score-gauge-mini__value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%);
+    font-size: var(--p-font-size-750);
+    font-weight: var(--p-font-weight-bold);
+    letter-spacing: var(--p-font-letter-spacing-densest);
+}
+
+
+/* ============================================================
+   Entity Card Grid (Schema Validation)
+   ============================================================ */
+
+.entity-card-grid {
+    display: grid;
+    gap: var(--p-space-300);
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.entity-card {
+    background: var(--p-color-bg-surface-secondary);
+    border: 1px solid var(--p-color-border-secondary);
+    border-radius: var(--p-border-radius-200);
+    padding: var(--p-space-300);
+}
+
+
+/* ============================================================
+   Keyword Bar Chart
+   ============================================================ */
+
+.keyword-bar-row {
+    display: flex;
+    align-items: center;
+    gap: var(--p-space-200);
+    padding: var(--p-space-100) 0;
+}
+
+.keyword-bar-label {
+    width: 160px;
+    flex-shrink: 0;
+    font-size: var(--p-font-size-300);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.keyword-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--p-color-bg-fill-secondary);
+    border-radius: var(--p-border-radius-full);
+    overflow: hidden;
+}
+
+.keyword-bar-fill {
+    height: 100%;
+    background: var(--p-color-bg-fill-emphasis);
+    border-radius: var(--p-border-radius-full);
+    transition: width 0.5s ease;
+}
+
+.keyword-bar-value {
+    width: 60px;
+    text-align: right;
+    font-size: var(--p-font-size-300);
+    font-weight: var(--p-font-weight-medium);
+    color: var(--p-color-text-secondary);
+    flex-shrink: 0;
+}
+
+
+/* ============================================================
+   Keyword Table
+   ============================================================ */
+
+.keyword-table th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.keyword-table th:hover {
+    color: var(--p-color-text-interactive);
+}
+
+
+/* ============================================================
+   Admin Modal
+   ============================================================ */
+
+.admin-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.admin-modal__content {
+    background: var(--p-color-bg-surface);
+    border-radius: var(--p-border-radius-300);
+    box-shadow: var(--p-shadow-400);
+    padding: var(--p-space-600);
+    width: 400px;
+    max-width: 90vw;
+}
+
+.admin-modal__content h3 {
+    margin-bottom: var(--p-space-300);
+}
+
+.admin-modal__content .Polaris-TextField {
+    margin-bottom: var(--p-space-300);
+}
+
+.admin-modal__actions {
+    display: flex;
+    gap: var(--p-space-200);
+    justify-content: flex-end;
+}
+
+
+/* ============================================================
+   Copy Button (inline on evidence)
+   ============================================================ */
+
+.copy-btn {
+    position: absolute;
+    top: var(--p-space-100);
+    right: var(--p-space-100);
+    background: var(--p-color-bg-surface);
+    border: 1px solid var(--p-color-border);
+    border-radius: var(--p-border-radius-100);
+    padding: var(--p-space-050);
+    cursor: pointer;
+    color: var(--p-color-icon-secondary);
+    display: flex;
+    align-items: center;
+    transition: color 0.1s;
+}
+
+.copy-btn:hover {
+    color: var(--p-color-icon-interactive);
+}
+
+
 @media (max-width: 768px) {
     .Polaris-TopBar {
         padding: 0 var(--p-space-300);
@@ -1365,7 +1556,16 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
     }
 
     .topbar-form__options {
-        display: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--p-space-200);
+        width: 100%;
+        order: 10;
+        margin-top: var(--p-space-100);
+    }
+
+    .topbar-form__row {
+        flex-wrap: wrap;
     }
 
     .app-main {
@@ -1390,4 +1590,6 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
 @media (max-width: 480px) {
     .topbar-form { margin: 0 var(--p-space-100); }
     .kpi-grid { grid-template-columns: 1fr 1fr; }
+    #crawl-pages-wrapper { display: none !important; }
+    .filter-sort { display: none; }
 }

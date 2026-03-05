@@ -48,11 +48,23 @@
                             <input type="checkbox" id="include-external">
                             <span>Intel</span>
                         </label>
+                        <label class="Polaris-Checkbox">
+                            <input type="checkbox" id="include-psi">
+                            <span>PSI</span>
+                        </label>
+                        <label class="Polaris-Checkbox">
+                            <input type="checkbox" id="include-schema">
+                            <span>Schema</span>
+                        </label>
                     </div>
                 </div>
                 <p id="error-msg" class="hidden topbar-error"></p>
             </form>
         </div>
+        <button id="keyword-btn" class="Polaris-Button Polaris-Button--default topbar-pdf-btn hidden" title="Keyword Research">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+            <span class="pdf-btn-text">Keywords</span>
+        </button>
         <button id="download-pdf-btn" class="Polaris-Button Polaris-Button--default topbar-pdf-btn hidden" title="Download PDF">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span class="pdf-btn-text">PDF</span>
@@ -88,6 +100,21 @@
             <!-- Results: main content area -->
             <div id="main-content" class="hidden"></div>
         </main>
+    </div>
+
+    <!-- Admin Token Modal -->
+    <div id="admin-modal" class="admin-modal hidden">
+        <div class="admin-modal__content">
+            <h3 class="Polaris-Text--headingMd">Keyword Research</h3>
+            <p class="Polaris-Text--bodySm Polaris-Text--subdued mb-300">Enter your admin token to access keyword suggestions.</p>
+            <div class="Polaris-TextField">
+                <input id="admin-token-input" type="password" placeholder="Admin token" class="Polaris-TextField__Input">
+            </div>
+            <div class="admin-modal__actions">
+                <button id="admin-modal-close" class="Polaris-Button Polaris-Button--default">Cancel</button>
+                <button id="admin-token-submit" class="Polaris-Button Polaris-Button--primary">Connect</button>
+            </div>
+        </div>
     </div>
 
     <script src="/static/js/store.js"></script>

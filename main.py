@@ -2,7 +2,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
@@ -11,6 +11,8 @@ from app.models import (
     AuditRequest, AuditResponse, CategoryResult, IssueSummary,
     CrawlRequest, CrawlResponse, CrawlPageSummary,
     CrawlBrokenLink, CrawlDuplicate,
+    PageSpeedResult, SchemaValidationResult,
+    KeywordSuggestRequest, KeywordSuggestResponse,
 )
 from app.external_models import ExternalInsights
 from app.report import generate_pdf
@@ -34,10 +36,17 @@ from app.analyzers import (
     analyze_serp_features,
     analyze_accessibility,
     analyze_crawl,
+    analyze_schema_validation,
+    analyze_pagespeed,
+    get_keyword_suggestions,
 )
 from app.analyzers.traffic_intel import analyze_traffic_intel
 from app.analyzers.search_intel import analyze_search_intel
-from app.config import EXTERNAL_MODULE_TIMEOUT
+from app.config import (
+    EXTERNAL_MODULE_TIMEOUT,
+    FEATURE_KEYWORD_PLANNER_ENABLED,
+    KEYWORD_PLANNER_ADMIN_TOKEN,
+)
 
 import os
 
@@ -132,6 +141,21 @@ async def run_audit(req: AuditRequest):
 
     overall = compute_overall_score(categories)
 
+    # --- Schema validation (opt-in) ---
+    schema_validation = None
+    if req.include_schema_validation:
+        try:
+            schema_validation = analyze_schema_validation(page)
+        except Exception:
+            schema_validation = None
+
+    # --- PageSpeed Insights (opt-in, runs in separate thread) ---
+    pagespeed_insights = None
+    psi_future = None
+    if req.include_pagespeed:
+        psi_executor = ThreadPoolExecutor(max_workers=1)
+        psi_future = psi_executor.submit(analyze_pagespeed, url)
+
     # --- External intelligence (opt-in) ---
     external_insights = None
     if req.include_external:
@@ -142,12 +166,22 @@ async def run_audit(req: AuditRequest):
     if req.include_crawl:
         crawl_results = _run_crawl(url, min(req.crawl_max_pages, 50))
 
+    # Collect PSI result
+    if psi_future is not None:
+        try:
+            pagespeed_insights = psi_future.result(timeout=65)
+        except Exception:
+            pagespeed_insights = None
+        psi_executor.shutdown(wait=False)
+
     return AuditResponse(
         url=url,
         overall_score=overall,
         categories=categories,
         external_insights=external_insights,
         crawl_results=crawl_results,
+        pagespeed_insights=pagespeed_insights,
+        schema_validation=schema_validation,
     )
 
 
@@ -244,4 +278,84 @@ async def export_pdf(data: AuditResponse):
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=seo-audit-report.pdf"},
+    )
+
+
+# ============================================================
+# Schema Validation — standalone endpoint
+# ============================================================
+
+from pydantic import BaseModel as _BaseModel
+
+
+class SchemaValidateRequest(_BaseModel):
+    url: Optional[str] = None
+    jsonld: Optional[str] = None
+
+
+@app.post("/api/schema/validate", response_model=SchemaValidationResult)
+async def validate_schema(req: SchemaValidateRequest):
+    """Validate schema markup from a URL or raw JSON-LD snippet."""
+    import json as _json
+    from bs4 import BeautifulSoup
+
+    if req.url:
+        try:
+            page = fetch_page(req.url)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Could not fetch URL: {e}")
+        return analyze_schema_validation(page)
+    elif req.jsonld:
+        # Wrap raw JSON-LD in a minimal HTML page for the validator
+        try:
+            _json.loads(req.jsonld)  # Validate JSON syntax
+        except _json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+        html = f'<html><head><script type="application/ld+json">{req.jsonld}</script></head><body></body></html>'
+        from app.fetcher import FetchResult
+        import requests as _requests
+        # Create a minimal FetchResult for the validator
+        resp = _requests.models.Response()
+        resp._content = html.encode()
+        resp.status_code = 200
+        resp.headers["Content-Type"] = "text/html"
+        resp.elapsed = __import__("datetime").timedelta(milliseconds=0)
+        soup = BeautifulSoup(html, "html.parser")
+        page = FetchResult(url="inline://jsonld", response=resp, soup=soup)
+        return analyze_schema_validation(page)
+    else:
+        raise HTTPException(status_code=400, detail="Provide either 'url' or 'jsonld'")
+
+
+# ============================================================
+# Keyword Suggestions — privilege-gated endpoints
+# ============================================================
+
+@app.get("/api/keywords/status")
+async def keywords_status():
+    """Check if keyword planner feature is enabled."""
+    return {"enabled": FEATURE_KEYWORD_PLANNER_ENABLED}
+
+
+@app.post("/api/keywords/suggest", response_model=KeywordSuggestResponse)
+async def keyword_suggest(
+    req: KeywordSuggestRequest,
+    x_admin_token: Optional[str] = Header(None),
+):
+    """Generate keyword suggestions. Requires admin token when enabled."""
+    if not FEATURE_KEYWORD_PLANNER_ENABLED:
+        raise HTTPException(status_code=403, detail="Keyword Planner feature is disabled")
+
+    if not KEYWORD_PLANNER_ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Admin token not configured")
+
+    if x_admin_token != KEYWORD_PLANNER_ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Invalid admin token")
+
+    return get_keyword_suggestions(
+        url=str(req.url),
+        seed_keywords=req.seed_keywords,
+        language_code=req.language_code,
+        geo_target_ids=req.geo_target_ids,
+        page_size=req.page_size,
     )

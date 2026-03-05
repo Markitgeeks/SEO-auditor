@@ -14,6 +14,10 @@ const Store = (() => {
         isLoading: false,
         error: null,
         sidebarOpen: false,       // mobile sidebar toggle
+        adminToken: null,          // keyword planner auth (memory only)
+        keywordEnabled: false,     // whether keyword planner is available
+        keywordData: null,         // standalone keyword results
+        keywordSort: 'volume_desc', // keyword table sort
     };
 
     const _listeners = [];
