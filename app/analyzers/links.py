@@ -38,24 +38,37 @@ def analyze_links(page: FetchResult) -> CategoryResult:
     issues.append(Issue(severity="info", message=f"Total links: {total} (internal: {internal}, external: {external})"))
 
     if empty_href:
-        issues.append(Issue(severity="warning", message=f"{empty_href} links have empty or invalid href"))
+        issues.append(Issue(severity="warning", message=f"{empty_href} links have empty or invalid href",
+                            impact="medium", recommendation="Fix empty hrefs — use valid URLs or button elements for non-navigation actions.",
+                            evidence=f"{empty_href} empty/invalid links found"))
         score -= min(15, empty_href * 3)
     else:
         issues.append(Issue(severity="pass", message="No empty or invalid hrefs found"))
 
     if nofollow_internal:
-        issues.append(Issue(severity="warning", message=f"{nofollow_internal} internal links have rel=\"nofollow\""))
+        issues.append(Issue(severity="warning", message=f"{nofollow_internal} internal links have rel=\"nofollow\"",
+                            impact="medium", recommendation="Remove nofollow from internal links to allow PageRank flow within your site."))
         score -= min(15, nofollow_internal * 5)
     else:
         issues.append(Issue(severity="pass", message="No internal links with nofollow"))
 
     if internal == 0 and total > 0:
-        issues.append(Issue(severity="error", message="No internal links found"))
+        issues.append(Issue(severity="error", message="No internal links found",
+                            impact="high", recommendation="Add internal links to help search engines discover and rank your pages."))
         score -= 20
     elif internal > 0:
         issues.append(Issue(severity="pass", message=f"{internal} internal links found"))
 
     if external == 0 and total > 5:
-        issues.append(Issue(severity="info", message="No external links found — consider linking to authoritative sources"))
+        issues.append(Issue(severity="info", message="No external links found — consider linking to authoritative sources",
+                            impact="low", recommendation="Link to relevant, authoritative external sources to build topical trust."))
 
-    return CategoryResult(name="links", score=max(0, score), issues=issues)
+    metrics = {
+        "total_links": total,
+        "internal_links": internal,
+        "external_links": external,
+        "empty_invalid": empty_href,
+        "nofollow_internal": nofollow_internal,
+    }
+
+    return CategoryResult(name="links", score=max(0, score), issues=issues, metrics=metrics)

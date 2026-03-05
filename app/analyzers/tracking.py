@@ -19,7 +19,8 @@ def analyze_tracking(page: FetchResult) -> CategoryResult:
     if gsc_meta and gsc_meta.get("content"):
         issues.append(Issue(severity="pass", message="Google Search Console verification meta tag found"))
     else:
-        issues.append(Issue(severity="error", message="No Google Search Console verification meta tag"))
+        issues.append(Issue(severity="error", message="No Google Search Console verification meta tag",
+                            impact="high", recommendation="Add a google-site-verification meta tag to verify site ownership in Search Console."))
         score -= 25
 
     # --- Google Analytics (GA4 / legacy UA) ---
@@ -31,19 +32,20 @@ def analyze_tracking(page: FetchResult) -> CategoryResult:
     if ga4:
         issues.append(Issue(severity="pass", message="Google Analytics 4 (GA4) detected"))
     elif ua_legacy:
-        issues.append(Issue(severity="warning", message="Legacy Universal Analytics (UA-) detected; consider migrating to GA4"))
-    else:
-        has_any_analytics = False  # checked below after all pixels
+        issues.append(Issue(severity="warning", message="Legacy Universal Analytics (UA-) detected; consider migrating to GA4",
+                            impact="medium", recommendation="Migrate to Google Analytics 4 as Universal Analytics has been sunset."))
 
     # --- Google Tag Manager ---
     gtm_script = any("gtm.js" in src or "googletagmanager.com" in src for src in script_srcs)
     gtm_inline = bool(re.search(r"GTM-[A-Z0-9]+", html))
-    if gtm_script or gtm_inline:
+    gtm = gtm_script or gtm_inline
+    if gtm:
         container = re.search(r"(GTM-[A-Z0-9]+)", html)
         cid = container.group(1) if container else ""
         issues.append(Issue(severity="pass", message=f"Google Tag Manager detected{' (' + cid + ')' if cid else ''}"))
     else:
-        issues.append(Issue(severity="warning", message="No Google Tag Manager detected"))
+        issues.append(Issue(severity="warning", message="No Google Tag Manager detected",
+                            impact="medium", recommendation="Set up Google Tag Manager for centralized tag management."))
         score -= 15
 
     # --- Facebook Pixel ---
@@ -85,10 +87,24 @@ def analyze_tracking(page: FetchResult) -> CategoryResult:
     if not ga4 and not ua_legacy:
         any_analytics = any([fb, li, tt, pin, bing, hotjar, clarity])
         if not any_analytics:
-            issues.append(Issue(severity="error", message="No analytics or tracking pixels detected"))
+            issues.append(Issue(severity="error", message="No analytics or tracking pixels detected",
+                                impact="high", recommendation="Install Google Analytics 4 or another analytics platform to track site performance."))
             score -= 30
         else:
-            issues.append(Issue(severity="warning", message="No Google Analytics detected, but other tracking pixels found"))
+            issues.append(Issue(severity="warning", message="No Google Analytics detected, but other tracking pixels found",
+                                impact="medium", recommendation="Consider adding Google Analytics 4 for comprehensive traffic analysis."))
             score -= 15
 
-    return CategoryResult(name="tracking", score=max(0, score), issues=issues)
+    metrics = {
+        "ga4": ga4,
+        "gtm": gtm,
+        "facebook_pixel": fb,
+        "linkedin": li,
+        "tiktok": tt,
+        "pinterest": pin,
+        "bing": bing,
+        "hotjar": hotjar,
+        "clarity": clarity,
+    }
+
+    return CategoryResult(name="tracking", score=max(0, score), issues=issues, metrics=metrics)

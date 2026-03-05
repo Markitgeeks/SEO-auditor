@@ -23,174 +23,73 @@
             </div>
             SEO Auditor
         </div>
-    </nav>
-
-    <div class="Polaris-Page">
-
-        <!-- Page header -->
-        <div class="text-center mb-600">
-            <h1 class="Polaris-Text--headingXl mb-200">SEO Auditor</h1>
-            <p class="Polaris-Text--bodyMd Polaris-Text--subdued">Analyze any URL across 14 SEO categories with site crawl and market intelligence</p>
-        </div>
-
-        <!-- Combined audit form -->
-        <div style="max-width:640px;margin:0 auto" class="mb-600">
+        <button id="hamburger-btn" class="hamburger-btn" aria-label="Toggle sidebar">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 4.5h16M2 10h16M2 15.5h16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+        </button>
+        <div class="topbar-form">
             <form id="audit-form">
-                <div style="display:flex;gap:var(--p-space-200)">
+                <div class="topbar-form__row">
                     <div class="Polaris-TextField" style="flex:1">
-                        <input
-                            id="url-input"
-                            type="url"
-                            placeholder="https://example.com"
-                            required
-                            class="Polaris-TextField__Input Polaris-TextField__Input--lg"
-                        >
+                        <input id="url-input" type="url" placeholder="https://example.com" required class="Polaris-TextField__Input">
                     </div>
-                    <button type="submit" id="audit-btn" class="Polaris-Button Polaris-Button--primary Polaris-Button--sizeLg">
-                        Audit
-                    </button>
-                </div>
-                <div class="mt-300" style="display:flex;flex-wrap:wrap;gap:var(--p-space-200) var(--p-space-600);align-items:center">
-                    <label class="Polaris-Checkbox">
-                        <input type="checkbox" id="include-crawl" checked>
-                        <span>Site Crawl</span>
-                    </label>
-                    <div id="crawl-pages-wrapper" style="display:flex;align-items:center;gap:var(--p-space-100)">
-                        <span class="Polaris-Text--bodySm Polaris-Text--subdued">Max pages:</span>
-                        <div class="Polaris-TextField" style="width:56px">
-                            <input
-                                id="crawl-max-pages"
-                                type="number"
-                                min="1"
-                                max="50"
-                                value="10"
-                                class="Polaris-TextField__Input"
-                                style="text-align:center;padding:var(--p-space-100)"
-                            >
+                    <button type="submit" id="audit-btn" class="Polaris-Button Polaris-Button--primary">Audit</button>
+                    <div class="topbar-form__options">
+                        <label class="Polaris-Checkbox">
+                            <input type="checkbox" id="include-crawl" checked>
+                            <span>Crawl</span>
+                        </label>
+                        <div id="crawl-pages-wrapper" style="display:flex;align-items:center;gap:var(--p-space-100)">
+                            <span class="Polaris-Text--bodySm Polaris-Text--subdued">Max:</span>
+                            <div class="Polaris-TextField" style="width:48px">
+                                <input id="crawl-max-pages" type="number" min="1" max="50" value="10" class="Polaris-TextField__Input" style="text-align:center;padding:var(--p-space-100)">
+                            </div>
                         </div>
+                        <label class="Polaris-Checkbox">
+                            <input type="checkbox" id="include-external">
+                            <span>Intel</span>
+                        </label>
                     </div>
-                    <label class="Polaris-Checkbox">
-                        <input type="checkbox" id="include-external">
-                        <span>Market Intelligence</span>
-                    </label>
                 </div>
-                <p id="error-msg" class="hidden mt-200" style="color:var(--p-color-text-critical);font-size:var(--p-font-size-325)"></p>
+                <p id="error-msg" class="hidden topbar-error"></p>
             </form>
         </div>
+        <button id="download-pdf-btn" class="Polaris-Button Polaris-Button--default topbar-pdf-btn hidden" title="Download PDF">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="pdf-btn-text">PDF</span>
+        </button>
+    </nav>
 
-        <!-- Audit loading -->
-        <div id="loading" class="hidden flex-center gap-300 mb-600">
-            <div class="Polaris-Spinner Polaris-Spinner--large"></div>
-            <p class="Polaris-Text--bodyMd Polaris-Text--subdued">Analyzing page...</p>
-        </div>
+    <!-- App Layout -->
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside id="app-sidebar" class="app-sidebar">
+            <div id="sidebar-content"></div>
+        </aside>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-        <!-- Audit results -->
-        <div id="results" class="hidden fade-in">
-
-            <!-- Tabs -->
-            <div class="Polaris-Tabs mb-600" id="result-tabs">
-                <button class="Polaris-Tabs__Tab Polaris-Tabs__Tab--selected" data-tab="seo-tab" onclick="switchTab(this,'seo-tab')">SEO Audit</button>
-                <button class="Polaris-Tabs__Tab" data-tab="crawl-tab" id="crawl-tab-btn" onclick="switchTab(this,'crawl-tab')">Site Crawl</button>
-                <button class="Polaris-Tabs__Tab" data-tab="intel-tab" id="intel-tab-btn" onclick="switchTab(this,'intel-tab')">Market Intelligence</button>
-            </div>
-
-            <!-- SEO Audit Tab -->
-            <div id="seo-tab">
-                <!-- Overall Score -->
-                <div class="flex-center mb-600">
-                    <div class="score-gauge">
-                        <svg width="160" height="160" viewBox="0 0 160 160">
-                            <circle class="bg-ring" cx="80" cy="80" r="68" fill="none" stroke-width="10"/>
-                            <circle id="score-ring" class="fg-ring" cx="80" cy="80" r="68" fill="none" stroke-width="10"
-                                stroke-dasharray="427" stroke-dashoffset="427" stroke-linecap="round"/>
-                        </svg>
-                        <div class="score-text">
-                            <span id="overall-score" class="score-value">0</span>
-                            <span class="score-label">Overall</span>
-                        </div>
-                    </div>
-                    <p id="audited-url" class="Polaris-Text--bodySm Polaris-Text--subdued mt-300"></p>
-                    <button id="download-pdf-btn" class="Polaris-Button Polaris-Button--default mt-400">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Download PDF Report
-                    </button>
-                </div>
-
-                <!-- Category Grid -->
-                <div id="categories-grid" class="grid-3"></div>
-            </div>
-
-            <!-- Site Crawl Tab -->
-            <div id="crawl-tab" class="hidden">
-                <div id="crawl-results-content"></div>
-            </div>
-
-            <!-- Market Intelligence Tab -->
-            <div id="intel-tab" class="hidden">
-                <div id="intel-section">
-                    <div class="text-center mb-600">
-                        <h2 class="Polaris-Text--headingLg mb-200">Market &amp; Competitive Intelligence</h2>
-                        <p class="Polaris-Text--bodySm Polaris-Text--subdued">Domain-level insights from Similarweb and SEMrush APIs</p>
-                    </div>
-
-                    <!-- KPI Cards -->
-                    <div id="intel-kpi-cards" class="grid-5 mb-600"></div>
-
-                    <!-- Charts row -->
-                    <div class="grid-3 mb-600">
-                        <div class="Polaris-Card">
-                            <div class="Polaris-Card__Header">
-                                <h3 class="Polaris-Text--headingSm">Traffic Channels</h3>
-                            </div>
-                            <div class="Polaris-Card__Section" id="chart-channels"></div>
-                        </div>
-                        <div class="Polaris-Card">
-                            <div class="Polaris-Card__Header">
-                                <h3 class="Polaris-Text--headingSm">Top Countries</h3>
-                            </div>
-                            <div class="Polaris-Card__Section" id="chart-countries"></div>
-                        </div>
-                        <div class="Polaris-Card">
-                            <div class="Polaris-Card__Header">
-                                <h3 class="Polaris-Text--headingSm">Keyword Positions</h3>
-                            </div>
-                            <div class="Polaris-Card__Section" id="chart-keywords"></div>
-                        </div>
-                    </div>
-
-                    <!-- Detail tables -->
-                    <div class="grid-2 mb-600">
-                        <div id="intel-keywords-table" class="Polaris-Card hidden">
-                            <div class="Polaris-Card__Header">
-                                <h3 class="Polaris-Text--headingSm">Top Organic Keywords</h3>
-                            </div>
-                            <div class="Polaris-Card__Section p-0" style="padding:0">
-                                <div class="overflow-x" id="keywords-table-body"></div>
-                            </div>
-                        </div>
-                        <div id="intel-backlinks-table" class="Polaris-Card hidden">
-                            <div class="Polaris-Card__Header">
-                                <h3 class="Polaris-Text--headingSm">Top Backlinks</h3>
-                            </div>
-                            <div class="Polaris-Card__Section p-0" style="padding:0">
-                                <div class="overflow-x" id="backlinks-table-body"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="max-width:600px">
-                        <div id="intel-competitors-table" class="Polaris-Card hidden mb-600">
-                            <div class="Polaris-Card__Header">
-                                <h3 class="Polaris-Text--headingSm">Similar / Competitor Sites</h3>
-                            </div>
-                            <div class="Polaris-Card__Section" id="competitors-table-body"></div>
-                        </div>
-                    </div>
+        <!-- Main Panel -->
+        <main id="app-main" class="app-main">
+            <!-- Welcome state (before any audit) -->
+            <div id="welcome-state" class="welcome-state">
+                <div class="welcome-state__content">
+                    <h1 class="Polaris-Text--headingXl mb-200">SEO Auditor</h1>
+                    <p class="Polaris-Text--bodyMd Polaris-Text--subdued mb-400">Analyze any URL across 14 SEO categories with site crawl and market intelligence</p>
+                    <p class="Polaris-Text--bodySm Polaris-Text--subdued">Enter a URL in the top bar and click Audit to get started.</p>
                 </div>
             </div>
 
-        </div>
+            <!-- Loading state -->
+            <div id="loading-state" class="hidden">
+                <div id="main-skeleton"></div>
+            </div>
+
+            <!-- Results: main content area -->
+            <div id="main-content" class="hidden"></div>
+        </main>
     </div>
 
+    <script src="/static/js/store.js"></script>
+    <script src="/static/js/components.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

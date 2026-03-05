@@ -13,7 +13,6 @@ WAVE_API_URL = "https://wave.webaim.org/api/request"
 
 
 def _call_wave_api(page_url: str) -> dict | None:
-    """Call the WAVE API and return parsed JSON, or None on failure."""
     try:
         resp = requests.get(
             WAVE_API_URL,
@@ -35,7 +34,6 @@ def _call_wave_api(page_url: str) -> dict | None:
 
 
 def _analyze_category(cat_key: str, cat_data: dict, issues: list[Issue]) -> int:
-    """Analyze a single WAVE category and return penalty points."""
     count = cat_data.get("count", 0)
     items = cat_data.get("items", {})
 
@@ -44,13 +42,17 @@ def _analyze_category(cat_key: str, cat_data: dict, issues: list[Issue]) -> int:
             issues.append(Issue(severity="pass", message="No accessibility errors detected"))
             return 0
         penalty = min(count * 3, 40)
-        issues.append(Issue(severity="error", message=f"{count} accessibility error(s) found"))
+        issues.append(Issue(severity="error", message=f"{count} accessibility error(s) found",
+                            impact="high", recommendation="Fix accessibility errors to comply with WCAG guidelines and improve usability."))
         for item_id, item_data in list(items.items())[:8]:
             item_count = item_data.get("count", 1)
             desc = item_data.get("description", item_id)
             issues.append(Issue(
                 severity="error",
-                message=f"{desc} ({item_count} instance(s))"
+                message=f"{desc} ({item_count} instance(s))",
+                impact="high",
+                recommendation=f"Fix all {item_count} instance(s) of this accessibility error.",
+                evidence=item_id,
             ))
         return -penalty
 
@@ -59,13 +61,16 @@ def _analyze_category(cat_key: str, cat_data: dict, issues: list[Issue]) -> int:
             issues.append(Issue(severity="pass", message="No contrast issues detected"))
             return 0
         penalty = min(count * 2, 20)
-        issues.append(Issue(severity="warning", message=f"{count} contrast issue(s) found"))
+        issues.append(Issue(severity="warning", message=f"{count} contrast issue(s) found",
+                            impact="medium", recommendation="Ensure text has at least 4.5:1 contrast ratio against backgrounds (WCAG AA)."))
         for item_id, item_data in list(items.items())[:5]:
             item_count = item_data.get("count", 1)
             desc = item_data.get("description", item_id)
             issues.append(Issue(
                 severity="warning",
-                message=f"{desc} ({item_count} instance(s))"
+                message=f"{desc} ({item_count} instance(s))",
+                impact="medium",
+                evidence=item_id,
             ))
         return -penalty
 
@@ -74,13 +79,15 @@ def _analyze_category(cat_key: str, cat_data: dict, issues: list[Issue]) -> int:
             issues.append(Issue(severity="pass", message="No accessibility alerts"))
             return 0
         penalty = min(count, 15)
-        issues.append(Issue(severity="warning", message=f"{count} accessibility alert(s)"))
+        issues.append(Issue(severity="warning", message=f"{count} accessibility alert(s)",
+                            impact="low", recommendation="Review accessibility alerts — they may indicate potential issues."))
         for item_id, item_data in list(items.items())[:5]:
             item_count = item_data.get("count", 1)
             desc = item_data.get("description", item_id)
             issues.append(Issue(
                 severity="info",
-                message=f"{desc} ({item_count} instance(s))"
+                message=f"{desc} ({item_count} instance(s))",
+                evidence=item_id,
             ))
         return -penalty
 
@@ -110,19 +117,33 @@ def analyze_accessibility(page: FetchResult) -> CategoryResult:
 
     if data is None:
         issues.append(Issue(severity="warning", message="Could not reach WAVE API -- accessibility analysis unavailable"))
-        return CategoryResult(name="accessibility", score=50, issues=issues)
+        return CategoryResult(name="accessibility", score=50, issues=issues,
+                              metrics={"error_count": 0, "contrast_issues": 0, "alert_count": 0,
+                                       "feature_count": 0, "aria_count": 0})
 
-    # Statistics
     stats = data.get("statistics", {})
-    page_title = stats.get("pagetitle", "")
     credits = stats.get("creditsremaining", "?")
     issues.append(Issue(severity="info", message=f"WAVE analysis complete (credits remaining: {credits})"))
 
-    # Process each WAVE category
     categories = data.get("categories", {})
+
+    error_count = categories.get("error", {}).get("count", 0)
+    contrast_issues = categories.get("contrast", {}).get("count", 0)
+    alert_count = categories.get("alert", {}).get("count", 0)
+    feature_count = categories.get("feature", {}).get("count", 0)
+    aria_count = categories.get("aria", {}).get("count", 0)
+
     for cat_key in ["error", "contrast", "alert", "feature", "structure", "aria"]:
         cat_data = categories.get(cat_key, {})
         penalty = _analyze_category(cat_key, cat_data, issues)
         score += penalty
 
-    return CategoryResult(name="accessibility", score=max(0, min(100, score)), issues=issues)
+    metrics = {
+        "error_count": error_count,
+        "contrast_issues": contrast_issues,
+        "alert_count": alert_count,
+        "feature_count": feature_count,
+        "aria_count": aria_count,
+    }
+
+    return CategoryResult(name="accessibility", score=max(0, min(100, score)), issues=issues, metrics=metrics)

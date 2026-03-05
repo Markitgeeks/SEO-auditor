@@ -1,3 +1,4 @@
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
@@ -7,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
 from app.models import (
-    AuditRequest, AuditResponse, CategoryResult,
+    AuditRequest, AuditResponse, CategoryResult, IssueSummary,
     CrawlRequest, CrawlResponse, CrawlPageSummary,
     CrawlBrokenLink, CrawlDuplicate,
 )
@@ -66,10 +67,29 @@ if os.path.isdir(_static_dir):
 
 
 def _run_analyzer(fn, page, name: str) -> CategoryResult:
+    start = time.perf_counter()
     try:
-        return fn(page)
-    except Exception:
-        return CategoryResult(name=name, score=0, issues=[])
+        result = fn(page)
+        elapsed = int((time.perf_counter() - start) * 1000)
+        # Auto-populate summary from issues
+        summary = IssueSummary(
+            error_count=sum(1 for i in result.issues if i.severity == "error"),
+            warning_count=sum(1 for i in result.issues if i.severity == "warning"),
+            info_count=sum(1 for i in result.issues if i.severity == "info"),
+            pass_count=sum(1 for i in result.issues if i.severity == "pass"),
+        )
+        result.summary = summary
+        result.duration_ms = elapsed
+        return result
+    except Exception as exc:
+        elapsed = int((time.perf_counter() - start) * 1000)
+        return CategoryResult(
+            name=name, score=0, issues=[],
+            status="error",
+            error_message=str(exc)[:200],
+            duration_ms=elapsed,
+            summary=IssueSummary(),
+        )
 
 
 @app.post("/api/audit", response_model=AuditResponse)

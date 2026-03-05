@@ -12,7 +12,8 @@ def _check_https(page: FetchResult, issues: list[Issue]) -> int:
     if page.scheme == "https":
         issues.append(Issue(severity="pass", message="Page served over HTTPS"))
         return 0
-    issues.append(Issue(severity="error", message="Page not served over HTTPS -- required for Google Ads"))
+    issues.append(Issue(severity="error", message="Page not served over HTTPS -- required for Google Ads",
+                        impact="high", recommendation="Migrate to HTTPS. Google Ads requires secure landing pages."))
     return -15
 
 
@@ -22,9 +23,11 @@ def _check_load_speed(page: FetchResult, issues: list[Issue]) -> int:
         issues.append(Issue(severity="pass", message=f"Fast page load ({ms}ms)"))
         return 0
     if ms < 3000:
-        issues.append(Issue(severity="warning", message=f"Moderate page load ({ms}ms) -- aim for under 1s"))
+        issues.append(Issue(severity="warning", message=f"Moderate page load ({ms}ms) -- aim for under 1s",
+                            impact="medium", recommendation="Optimize page load time to under 1 second for better ad quality scores."))
         return -5
-    issues.append(Issue(severity="error", message=f"Slow page load ({ms}ms) -- Google Ads penalizes slow pages"))
+    issues.append(Issue(severity="error", message=f"Slow page load ({ms}ms) -- Google Ads penalizes slow pages",
+                        impact="high", recommendation="Significantly improve page speed. Consider CDN, image compression, and code splitting."))
     return -15
 
 
@@ -33,41 +36,45 @@ def _check_mobile_viewport(page: FetchResult, issues: list[Issue]) -> int:
     if viewport:
         issues.append(Issue(severity="pass", message="Mobile viewport meta tag present"))
         return 0
-    issues.append(Issue(severity="error", message="Missing viewport meta tag -- critical for mobile Ads traffic"))
+    issues.append(Issue(severity="error", message="Missing viewport meta tag -- critical for mobile Ads traffic",
+                        impact="high", recommendation="Add <meta name='viewport' content='width=device-width, initial-scale=1'>"))
     return -15
 
 
-def _check_content_relevance(page: FetchResult, issues: list[Issue]) -> int:
+def _check_content_relevance(page: FetchResult, issues: list[Issue]) -> tuple[int, int]:
     penalty = 0
     body = page.soup.find("body")
     text = body.get_text(separator=" ", strip=True) if body else ""
     word_count = len(text.split())
 
     if word_count < 100:
-        issues.append(Issue(severity="warning", message=f"Thin content ({word_count} words) -- Google Ads prefers substantive pages"))
+        issues.append(Issue(severity="warning", message=f"Thin content ({word_count} words) -- Google Ads prefers substantive pages",
+                            impact="medium", recommendation="Add more relevant content to improve ad quality score and user experience."))
         penalty -= 10
     elif word_count < 300:
-        issues.append(Issue(severity="info", message=f"Content has {word_count} words -- consider adding more for quality score"))
+        issues.append(Issue(severity="info", message=f"Content has {word_count} words -- consider adding more for quality score",
+                            impact="low", recommendation="Expanding content beyond 300 words can improve ad landing page quality."))
         penalty -= 3
     else:
         issues.append(Issue(severity="pass", message=f"Good content depth ({word_count} words)"))
 
-    # Title and H1 presence
     title = page.soup.find("title")
     h1 = page.soup.find("h1")
     if title and h1:
         issues.append(Issue(severity="pass", message="Title and H1 both present for keyword relevance"))
     elif not title:
-        issues.append(Issue(severity="warning", message="Missing title tag -- hurts ad relevance score"))
+        issues.append(Issue(severity="warning", message="Missing title tag -- hurts ad relevance score",
+                            impact="medium", recommendation="Add a <title> tag with relevant keywords."))
         penalty -= 5
     elif not h1:
-        issues.append(Issue(severity="info", message="No H1 tag -- consider adding for ad landing page relevance"))
+        issues.append(Issue(severity="info", message="No H1 tag -- consider adding for ad landing page relevance",
+                            impact="low", recommendation="Add an H1 heading that matches your ad copy keywords."))
         penalty -= 2
 
-    return penalty
+    return penalty, word_count
 
 
-def _check_conversion_tracking(page: FetchResult, issues: list[Issue]) -> int:
+def _check_conversion_tracking(page: FetchResult, issues: list[Issue]) -> tuple[int, list[str]]:
     html = page.response.text
     trackers_found = []
 
@@ -84,16 +91,17 @@ def _check_conversion_tracking(page: FetchResult, issues: list[Issue]) -> int:
 
     if trackers_found:
         issues.append(Issue(severity="pass", message=f"Conversion tracking detected: {', '.join(trackers_found)}"))
-        return 0
-    issues.append(Issue(severity="warning", message="No conversion tracking detected -- add Google Ads conversion pixel or GA4"))
-    return -10
+        return 0, trackers_found
+    issues.append(Issue(severity="warning", message="No conversion tracking detected -- add Google Ads conversion pixel or GA4",
+                        impact="medium", recommendation="Install Google Ads conversion tracking to measure campaign ROI."))
+    return -10, trackers_found
 
 
-def _check_cta_and_forms(page: FetchResult, issues: list[Issue]) -> int:
+def _check_cta_and_forms(page: FetchResult, issues: list[Issue]) -> tuple[int, int]:
     penalty = 0
     soup = page.soup
+    cta_count = 0
 
-    # CTA detection
     cta_pattern = re.compile(
         r"\b(buy\s*now|add\s*to\s*cart|shop\s*now|sign\s*up|get\s*started|subscribe|"
         r"learn\s*more|contact\s*us|request\s*a?\s*quote|book\s*now|order\s*now|"
@@ -101,20 +109,18 @@ def _check_cta_and_forms(page: FetchResult, issues: list[Issue]) -> int:
         re.IGNORECASE,
     )
     cta_elements = soup.find_all(["a", "button"], string=cta_pattern)
-    # Also check values of input/button
     cta_inputs = soup.find_all("input", attrs={"value": cta_pattern})
+    cta_count = len(cta_elements) + len(cta_inputs)
 
-    if cta_elements or cta_inputs:
-        count = len(cta_elements) + len(cta_inputs)
-        issues.append(Issue(severity="pass", message=f"{count} call-to-action element(s) detected"))
+    if cta_count:
+        issues.append(Issue(severity="pass", message=f"{cta_count} call-to-action element(s) detected"))
     else:
-        issues.append(Issue(severity="warning", message="No clear CTA found (buy now, sign up, etc.)"))
+        issues.append(Issue(severity="warning", message="No clear CTA found (buy now, sign up, etc.)",
+                            impact="medium", recommendation="Add a clear call-to-action button matching your ad copy."))
         penalty -= 5
 
-    # Form check
     forms = soup.find_all("form")
     if forms:
-        # Check form accessibility
         labels = soup.find_all("label")
         submits = soup.find_all(["button", "input"], attrs={"type": re.compile(r"submit", re.I)})
         if labels and submits:
@@ -122,7 +128,7 @@ def _check_cta_and_forms(page: FetchResult, issues: list[Issue]) -> int:
         elif forms:
             issues.append(Issue(severity="info", message=f"{len(forms)} form(s) found -- ensure labels and submit buttons are present"))
 
-    return penalty
+    return penalty, cta_count
 
 
 def _check_ad_schema(page: FetchResult, issues: list[Issue]) -> int:
@@ -151,11 +157,23 @@ def analyze_ads_quality(page: FetchResult) -> CategoryResult:
     score = 100
 
     score += _check_https(page, issues)
+    load_speed_ms = page.elapsed_ms
     score += _check_load_speed(page, issues)
     score += _check_mobile_viewport(page, issues)
-    score += _check_content_relevance(page, issues)
-    score += _check_conversion_tracking(page, issues)
-    score += _check_cta_and_forms(page, issues)
+    content_penalty, word_count = _check_content_relevance(page, issues)
+    score += content_penalty
+    tracking_penalty, conversion_trackers = _check_conversion_tracking(page, issues)
+    score += tracking_penalty
+    cta_penalty, cta_count = _check_cta_and_forms(page, issues)
+    score += cta_penalty
     score += _check_ad_schema(page, issues)
 
-    return CategoryResult(name="ads_quality", score=max(0, min(100, score)), issues=issues)
+    metrics = {
+        "https_compliant": page.scheme == "https",
+        "load_speed_ms": load_speed_ms,
+        "word_count": word_count,
+        "cta_count": cta_count,
+        "conversion_trackers": conversion_trackers,
+    }
+
+    return CategoryResult(name="ads_quality", score=max(0, min(100, score)), issues=issues, metrics=metrics)

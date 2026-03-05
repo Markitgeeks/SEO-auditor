@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from app.external_models import ExternalInsights
 
@@ -15,12 +15,27 @@ class AuditRequest(BaseModel):
 class Issue(BaseModel):
     severity: Literal["error", "warning", "info", "pass"]
     message: str
+    impact: Optional[str] = None           # "high" / "medium" / "low"
+    recommendation: Optional[str] = None
+    evidence: Optional[str] = None         # escaped snippet/URL
+
+
+class IssueSummary(BaseModel):
+    error_count: int = 0
+    warning_count: int = 0
+    info_count: int = 0
+    pass_count: int = 0
 
 
 class CategoryResult(BaseModel):
     name: str
     score: int
     issues: list[Issue]
+    metrics: Optional[dict[str, Any]] = None
+    summary: Optional[IssueSummary] = None
+    duration_ms: Optional[int] = None
+    status: str = "ok"           # "ok" | "error"
+    error_message: Optional[str] = None
 
 
 # --- Crawl models ---
