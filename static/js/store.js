@@ -4,20 +4,38 @@
 
 const Store = (() => {
     const _state = {
-        auditData: null,
+        // Navigation
+        currentView: 'home',        // 'home' | 'brands' | 'brand-detail' | 'audit-detail' | 'audit-run' | 'reports' | 'settings' | 'category'
         selectedCategory: 'overview',
         activeTab: 'summary',
-        issueFilter: 'all',       // 'all' | 'error' | 'warning' | 'info' | 'pass'
-        issueSort: 'severity',    // 'severity' | 'impact'
+
+        // Audit data (single audit view)
+        auditData: null,
+        issueFilter: 'all',
+        issueSort: 'severity',
         issuePage: 0,
         issueSearch: '',
+
+        // Multi-brand state
+        brands: [],
+        selectedBrandId: null,
+        selectedBrand: null,
+        brandAudits: [],
+
+        // Audit detail (from DB)
+        selectedAuditId: null,
+        selectedAudit: null,
+
+        // Loading / error
         isLoading: false,
         error: null,
-        sidebarOpen: false,       // mobile sidebar toggle
-        adminToken: null,          // keyword planner auth (memory only)
-        keywordEnabled: false,     // whether keyword planner is available
-        keywordData: null,         // standalone keyword results
-        keywordSort: 'volume_desc', // keyword table sort
+        sidebarOpen: false,
+
+        // Keyword planner
+        adminToken: null,
+        keywordEnabled: false,
+        keywordData: null,
+        keywordSort: 'volume_desc',
     };
 
     const _listeners = [];

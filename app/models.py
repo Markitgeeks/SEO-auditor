@@ -12,6 +12,11 @@ class AuditRequest(BaseModel):
     crawl_max_pages: int = 10
     include_pagespeed: bool = False
     include_schema_validation: bool = False
+    # Multi-brand extensions (backward compatible — all optional)
+    brand_id: Optional[str] = None
+    save_result: bool = False
+    include_exec_summary: bool = True
+    include_public_profile: bool = False
 
 
 class Issue(BaseModel):
@@ -162,3 +167,77 @@ class AuditResponse(BaseModel):
     crawl_results: Optional[CrawlResponse] = None
     pagespeed_insights: Optional[PageSpeedResult] = None
     schema_validation: Optional[SchemaValidationResult] = None
+    # Multi-brand extensions (optional — absent for existing clients)
+    audit_id: Optional[str] = None
+    brand_id: Optional[str] = None
+    executive_summary: Optional[dict] = None
+    brand_profile: Optional[dict] = None
+
+
+# ---- Brand CRUD schemas ----
+
+class BrandCreate(BaseModel):
+    name: str
+    primary_domain: str
+    industry: Optional[str] = None
+    description: Optional[str] = None
+    persona: Optional[str] = None
+    revenue_range: Optional[str] = None
+
+class BrandUpdate(BaseModel):
+    name: Optional[str] = None
+    primary_domain: Optional[str] = None
+    industry: Optional[str] = None
+    description: Optional[str] = None
+    persona: Optional[str] = None
+    revenue_range: Optional[str] = None
+    theme_json: Optional[dict] = None
+
+class BrandResponse(BaseModel):
+    id: str
+    name: str
+    primary_domain: str
+    industry: Optional[str] = None
+    description: Optional[str] = None
+    persona: Optional[str] = None
+    revenue_range: Optional[str] = None
+    logo_path: Optional[str] = None
+    theme_json: Optional[dict] = None
+    enrichment_status_json: Optional[dict] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    audit_count: int = 0
+    latest_score: Optional[int] = None
+    previous_score: Optional[int] = None
+
+class AuditListItem(BaseModel):
+    id: str
+    audited_url: str
+    audited_domain: Optional[str] = None
+    created_at: Optional[str] = None
+    overall_score: int
+    status: str = "ok"
+    error_message: Optional[str] = None
+    duration_ms: Optional[int] = None
+    score_delta: Optional[int] = None   # vs previous audit
+
+class AuditDetail(BaseModel):
+    id: str
+    brand_id: Optional[str] = None
+    audited_url: str
+    audited_domain: Optional[str] = None
+    created_at: Optional[str] = None
+    overall_score: int
+    status: str = "ok"
+    error_message: Optional[str] = None
+    duration_ms: Optional[int] = None
+    category_results_json: Optional[dict] = None
+    insights_json: Optional[dict] = None
+    summary_json: Optional[dict] = None
+
+class ReportPDFRequest(BaseModel):
+    audit_id: str
+    theme_overrides: Optional[dict] = None  # primary_color, bg_color, bg_image_path
+    include_recommendations: bool = True
+    include_evidence: bool = False
+    include_appendix: bool = False

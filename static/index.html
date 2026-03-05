@@ -71,11 +71,11 @@
         </button>
     </nav>
 
-    <!-- Sidebar overlay (mobile) — outside grid to avoid layout interference -->
+    <!-- Sidebar overlay (mobile) -->
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
     <!-- App Layout -->
-    <div id="app-layout" class="app-layout">
+    <div id="app-layout" class="app-layout has-results">
         <!-- Sidebar -->
         <aside id="app-sidebar" class="app-sidebar">
             <div id="sidebar-content"></div>
@@ -83,14 +83,8 @@
 
         <!-- Main Panel -->
         <main id="app-main" class="app-main">
-            <!-- Welcome state (before any audit) -->
-            <div id="welcome-state" class="welcome-state">
-                <div class="welcome-state__content">
-                    <h1 class="Polaris-Text--headingXl mb-200">SEO Auditor</h1>
-                    <p class="Polaris-Text--bodyMd Polaris-Text--subdued mb-400">Analyze any URL across 14 SEO categories with site crawl and market intelligence</p>
-                    <p class="Polaris-Text--bodySm Polaris-Text--subdued">Enter a URL in the top bar and click Audit to get started.</p>
-                </div>
-            </div>
+            <!-- Welcome state (hidden by default — router takes over) -->
+            <div id="welcome-state" class="welcome-state hidden"></div>
 
             <!-- Loading state -->
             <div id="loading-state" class="hidden">
@@ -98,7 +92,7 @@
             </div>
 
             <!-- Results: main content area -->
-            <div id="main-content" class="hidden"></div>
+            <div id="main-content"></div>
         </main>
     </div>
 

@@ -71,3 +71,11 @@ GOOGLE_ADS_LOGIN_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID", ""
 GOOGLE_ADS_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_CUSTOMER_ID", "")
 KEYWORD_CACHE_TTL = 86400  # 24h
 KEYWORD_RPM = 10
+
+# --- Database ---
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./seo_auditor.db")
+
+# --- Uploads ---
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads"))
+UPLOAD_MAX_SIZE_MB = 5
+UPLOAD_ALLOWED_TYPES = {"image/png", "image/jpeg", "image/svg+xml", "image/webp"}

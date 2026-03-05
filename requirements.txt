@@ -7,3 +7,6 @@ beautifulsoup4==4.12.3
 lxml==5.2.0
 fpdf2==2.8.1
 extruct==0.17.0
+sqlalchemy==2.0.36
+python-multipart==0.0.12
+aiofiles==24.1.0

@@ -112,7 +112,8 @@ def _score_label(score: int) -> str:
 class SEOReportPDF(FPDF):
     def __init__(self) -> None:
         super().__init__(orientation="P", unit="mm", format="A4")
-        self.set_auto_page_break(auto=True, margin=20)
+        self.set_auto_page_break(auto=False)
+        self._bottom = self.h - 20  # usable bottom margin
 
     # ------------------------------------------------------------------
     # Helpers
@@ -273,22 +274,32 @@ def _draw_arc(
 
 # -------------------------------------------------------------------
 
-def _render_summary(pdf: SEOReportPDF, data: AuditResponse) -> None:
+def _dark_page(pdf: SEOReportPDF) -> None:
+    """Start a new dark-background page."""
     pdf.add_page()
     pdf.set_fill_color(*DARK_BG)
     pdf.rect(0, 0, pdf.w, pdf.h, "F")
+
+
+def _ensure_dark_space(pdf: SEOReportPDF, needed: float) -> None:
+    """If less than `needed` mm remain, start a fresh dark page."""
+    if pdf.get_y() + needed > pdf._bottom:
+        _dark_page(pdf)
+        pdf.set_y(15)
+
+
+def _render_summary(pdf: SEOReportPDF, data: AuditResponse) -> None:
+    _dark_page(pdf)
 
     pdf.set_font("Helvetica", "B", 20)
     pdf._set_color(WHITE)
     pdf.set_xy(15, 15)
     pdf.cell(0, 10, "Executive Summary", new_x="LMARGIN", new_y="NEXT")
 
-    # Horizontal separator
     pdf.set_draw_color(*GREY)
     pdf.set_line_width(0.3)
     pdf.line(15, 28, pdf.w - 15, 28)
 
-    # Issue totals
     errors = sum(1 for c in data.categories for i in c.issues if i.severity == "error")
     warnings = sum(1 for c in data.categories for i in c.issues if i.severity == "warning")
     infos = sum(1 for c in data.categories for i in c.issues if i.severity == "info")
@@ -301,7 +312,6 @@ def _render_summary(pdf: SEOReportPDF, data: AuditResponse) -> None:
     pdf.set_x(15)
     pdf.cell(0, 6, f"Total findings: {total}  |  {errors} errors  |  {warnings} warnings  |  {infos} info  |  {passes} passed", new_x="LMARGIN", new_y="NEXT")
 
-    # Bar chart of category scores
     pdf.set_y(46)
     pdf.set_font("Helvetica", "B", 13)
     pdf._set_color(WHITE)
@@ -312,7 +322,6 @@ def _render_summary(pdf: SEOReportPDF, data: AuditResponse) -> None:
     bar_max_w = pdf.w - bar_x - 25
     y = 60
 
-    # Sort by weight descending
     sorted_cats = sorted(
         data.categories,
         key=lambda c: CATEGORY_WEIGHTS.get(c.name, 0),
@@ -324,23 +333,19 @@ def _render_summary(pdf: SEOReportPDF, data: AuditResponse) -> None:
         weight = CATEGORY_WEIGHTS.get(cat.name, 0)
         color = _score_color(cat.score)
 
-        # Label
         pdf.set_font("Helvetica", "", 9)
         pdf._set_color(LIGHT_TEXT)
         pdf.set_xy(15, y)
         pdf.cell(bar_x - 17, 6, label, align="R")
 
-        # Bar background
         pdf.set_fill_color(80, 90, 110)
         pdf.rect(bar_x, y + 1, bar_max_w, 4, "F")
 
-        # Bar fill
         fill_w = bar_max_w * cat.score / 100
         if fill_w > 0:
             pdf.set_fill_color(*color)
             pdf.rect(bar_x, y + 1, fill_w, 4, "F")
 
-        # Score + weight text
         pdf.set_font("Helvetica", "B", 9)
         pdf._set_color(color)
         pdf.set_xy(bar_x + bar_max_w + 2, y)
@@ -353,10 +358,8 @@ def _render_summary(pdf: SEOReportPDF, data: AuditResponse) -> None:
 
         y += 10
 
-        if y > pdf.h - 25:
-            pdf.add_page()
-            pdf.set_fill_color(*DARK_BG)
-            pdf.rect(0, 0, pdf.w, pdf.h, "F")
+        if y > pdf._bottom - 10:
+            _dark_page(pdf)
             y = 20
 
 
@@ -368,12 +371,7 @@ def _render_category_detail(pdf: SEOReportPDF, cat: CategoryResult) -> None:
     color = _score_color(cat.score)
     desc = CATEGORY_DESCRIPTIONS.get(cat.name, "")
 
-    # Check if we need a new page (need at least 60mm)
-    if pdf.get_y() > pdf.h - 60:
-        pdf.add_page()
-        pdf.set_fill_color(*DARK_BG)
-        pdf.rect(0, 0, pdf.w, pdf.h, "F")
-        pdf.set_y(15)
+    _ensure_dark_space(pdf, 40)
 
     y = pdf.get_y()
 
@@ -428,10 +426,8 @@ def _render_category_detail(pdf: SEOReportPDF, cat: CategoryResult) -> None:
     else:
         for issue in cat.issues:
             iy = pdf.get_y()
-            if iy > pdf.h - 20:
-                pdf.add_page()
-                pdf.set_fill_color(*DARK_BG)
-                pdf.rect(0, 0, pdf.w, pdf.h, "F")
+            if iy > pdf._bottom - 10:
+                _dark_page(pdf)
                 pdf.set_y(15)
                 iy = 15
 
@@ -456,19 +452,18 @@ def _render_category_detail(pdf: SEOReportPDF, cat: CategoryResult) -> None:
 # -------------------------------------------------------------------
 
 def _render_recommendations(pdf: SEOReportPDF, data: AuditResponse) -> None:
-    pdf.add_page()
-    pdf.set_fill_color(*DARK_BG)
-    pdf.rect(0, 0, pdf.w, pdf.h, "F")
+    _ensure_dark_space(pdf, 50)
 
     pdf.set_font("Helvetica", "B", 20)
     pdf._set_color(WHITE)
-    pdf.set_xy(15, 15)
+    y = pdf.get_y()
+    pdf.set_xy(15, y)
     pdf.cell(0, 10, "Top Priority Fixes", new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_draw_color(*GREY)
     pdf.set_line_width(0.3)
-    pdf.line(15, 28, pdf.w - 15, 28)
-    pdf.set_y(33)
+    pdf.line(15, y + 13, pdf.w - 15, y + 13)
+    pdf.set_y(y + 18)
 
     # Sort categories by weight desc
     sorted_cats = sorted(
@@ -486,11 +481,7 @@ def _render_recommendations(pdf: SEOReportPDF, data: AuditResponse) -> None:
         has_errors = True
         label = CATEGORY_LABELS.get(cat.name, cat.name)
 
-        if pdf.get_y() > pdf.h - 25:
-            pdf.add_page()
-            pdf.set_fill_color(*DARK_BG)
-            pdf.rect(0, 0, pdf.w, pdf.h, "F")
-            pdf.set_y(15)
+        _ensure_dark_space(pdf, 20)
 
         pdf.set_font("Helvetica", "B", 10)
         pdf._set_color(RED)
@@ -498,11 +489,7 @@ def _render_recommendations(pdf: SEOReportPDF, data: AuditResponse) -> None:
         pdf.cell(0, 6, label, new_x="LMARGIN", new_y="NEXT")
 
         for issue in errors:
-            if pdf.get_y() > pdf.h - 15:
-                pdf.add_page()
-                pdf.set_fill_color(*DARK_BG)
-                pdf.rect(0, 0, pdf.w, pdf.h, "F")
-                pdf.set_y(15)
+            _ensure_dark_space(pdf, 10)
 
             pdf.set_font("Helvetica", "", 8)
             pdf._set_color(LIGHT_TEXT)
@@ -520,11 +507,7 @@ def _render_recommendations(pdf: SEOReportPDF, data: AuditResponse) -> None:
 
     # Warnings
     pdf.set_y(pdf.get_y() + 4)
-    if pdf.get_y() > pdf.h - 30:
-        pdf.add_page()
-        pdf.set_fill_color(*DARK_BG)
-        pdf.rect(0, 0, pdf.w, pdf.h, "F")
-        pdf.set_y(15)
+    _ensure_dark_space(pdf, 25)
 
     pdf.set_font("Helvetica", "B", 13)
     pdf._set_color(YELLOW)
@@ -540,11 +523,7 @@ def _render_recommendations(pdf: SEOReportPDF, data: AuditResponse) -> None:
         has_warnings = True
         label = CATEGORY_LABELS.get(cat.name, cat.name)
 
-        if pdf.get_y() > pdf.h - 25:
-            pdf.add_page()
-            pdf.set_fill_color(*DARK_BG)
-            pdf.rect(0, 0, pdf.w, pdf.h, "F")
-            pdf.set_y(15)
+        _ensure_dark_space(pdf, 20)
 
         pdf.set_font("Helvetica", "B", 10)
         pdf._set_color(YELLOW)
@@ -552,11 +531,7 @@ def _render_recommendations(pdf: SEOReportPDF, data: AuditResponse) -> None:
         pdf.cell(0, 6, label, new_x="LMARGIN", new_y="NEXT")
 
         for issue in warnings:
-            if pdf.get_y() > pdf.h - 15:
-                pdf.add_page()
-                pdf.set_fill_color(*DARK_BG)
-                pdf.rect(0, 0, pdf.w, pdf.h, "F")
-                pdf.set_y(15)
+            _ensure_dark_space(pdf, 10)
 
             pdf.set_font("Helvetica", "", 8)
             pdf._set_color(LIGHT_TEXT)
@@ -583,11 +558,8 @@ def generate_pdf(data: AuditResponse) -> bytes:
     _render_cover(pdf, data)
     _render_summary(pdf, data)
 
-    # Category detail pages
-    pdf.add_page()
-    pdf.set_fill_color(*DARK_BG)
-    pdf.rect(0, 0, pdf.w, pdf.h, "F")
-
+    # Category detail pages — start new page for section header
+    _dark_page(pdf)
     pdf.set_font("Helvetica", "B", 20)
     pdf._set_color(WHITE)
     pdf.set_xy(15, 15)
@@ -597,7 +569,6 @@ def generate_pdf(data: AuditResponse) -> bytes:
     pdf.line(15, 28, pdf.w - 15, 28)
     pdf.set_y(33)
 
-    # Sort by weight descending
     sorted_cats = sorted(
         data.categories,
         key=lambda c: CATEGORY_WEIGHTS.get(c.name, 0),

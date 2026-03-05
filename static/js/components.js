@@ -41,6 +41,14 @@ function worstSeverity(issues) {
     return 'pass';
 }
 
+function renderIntelKPI(label, value, source) {
+    return `<div class="kpi-card">
+        <div class="kpi-card__value">${escapeHtml(String(value))}</div>
+        <div class="kpi-card__label">${escapeHtml(label)}</div>
+        ${source ? `<div class="kpi-card__source Polaris-Text--bodySm Polaris-Text--subdued">${escapeHtml(source)}</div>` : ''}
+    </div>`;
+}
+
 const ISSUES_PER_PAGE = 50;
 
 // --- Category metadata ---
@@ -938,4 +946,289 @@ function renderKeywordPanel(keywordData) {
     }
 
     return html;
+}
+
+
+// ============================================================
+// Multi-Brand Views
+// ============================================================
+
+function renderAppSidebar(state) {
+    const view = state.currentView;
+    const brand = state.selectedBrand;
+    let html = '<nav class="app-nav">';
+
+    html += `<a class="sidebar-item ${view === 'home' ? 'selected' : ''}" data-nav="home">
+        <span class="sidebar-item__icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2L2 8v10h5v-5h6v5h5V8l-8-6z"/></svg></span>
+        <span class="sidebar-item__label">Home</span>
+    </a>`;
+
+    html += `<a class="sidebar-item ${view === 'brands' ? 'selected' : ''}" data-nav="brands">
+        <span class="sidebar-item__icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4h12v2H4V4zm0 5h12v2H4V9zm0 5h8v2H4v-2z"/></svg></span>
+        <span class="sidebar-item__label">Brands</span>
+    </a>`;
+
+    if (brand) {
+        html += '<div class="sidebar-divider"></div>';
+        html += `<div class="sidebar-brand-name">${escapeHtml(brand.name)}</div>`;
+        const subItems = [
+            { id: 'brand-detail', label: 'Overview' },
+            { id: 'brand-audits', label: 'Audits' },
+            { id: 'audit-run', label: 'New Audit' },
+            { id: 'reports', label: 'Reports' },
+            { id: 'settings', label: 'Settings' },
+        ];
+        subItems.forEach(item => {
+            html += `<a class="sidebar-item sidebar-item--sub ${view === item.id ? 'selected' : ''}" data-nav="${item.id}">
+                <span class="sidebar-item__label">${item.label}</span>
+            </a>`;
+        });
+    }
+
+    html += '<div class="sidebar-divider"></div>';
+    html += `<a class="sidebar-item ${view === 'quick-audit' ? 'selected' : ''}" data-nav="quick-audit">
+        <span class="sidebar-item__icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l8 5v6l-8 5-8-5V7l8-5z"/></svg></span>
+        <span class="sidebar-item__label">Quick Audit</span>
+    </a>`;
+
+    html += '</nav>';
+    return html;
+}
+
+function renderHomePage(state) {
+    const brands = state.brands || [];
+    const auditData = state.auditData;
+    let html = '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">';
+    html += '<h2 class="Polaris-Text--headingXl mb-200">Executive Summary</h2>';
+    html += '<p class="Polaris-Text--bodySm Polaris-Text--subdued">Your SEO auditing dashboard. Select a brand or run a quick audit to get started.</p>';
+    html += '</div></div>';
+
+    if (brands.length) {
+        html += '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Your Brands</h3></div><div class="Polaris-Card__Section"><div class="brand-card-grid">';
+        brands.forEach(b => {
+            const tone = b.latest_score != null ? scoreTone(b.latest_score) : 'default';
+            const delta = (b.latest_score != null && b.previous_score != null) ? (b.latest_score - b.previous_score) : null;
+            const deltaStr = delta != null ? (delta >= 0 ? `+${delta}` : `${delta}`) : '';
+            const deltaClass = delta != null ? (delta >= 0 ? 'Polaris-Text--success' : 'Polaris-Text--critical') : '';
+            html += `<div class="brand-card" data-brand-id="${escapeHtml(b.id)}">
+                <div class="brand-card__header"><h4 class="Polaris-Text--headingSm">${escapeHtml(b.name)}</h4>
+                    ${b.latest_score != null ? `<span class="Polaris-Badge Polaris-Badge--${tone}">${b.latest_score}</span>` : '<span class="Polaris-Badge Polaris-Badge--default">New</span>'}
+                </div>
+                <p class="Polaris-Text--bodySm Polaris-Text--subdued">${escapeHtml(b.primary_domain)}</p>
+                <div class="brand-card__footer"><span>${b.audit_count || 0} audits</span>${deltaStr ? `<span class="${deltaClass}">${deltaStr} pts</span>` : ''}</div>
+            </div>`;
+        });
+        html += '</div></div></div>';
+    }
+
+    if (auditData && auditData.executive_summary) {
+        html += renderExecutiveSummarySection(auditData.executive_summary, auditData.overall_score);
+    }
+
+    html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <div style="display:flex;gap:var(--p-space-300);flex-wrap:wrap">
+            <button class="Polaris-Button Polaris-Button--primary" data-action="new-brand">+ New Brand</button>
+            <button class="Polaris-Button Polaris-Button--default" data-nav="quick-audit">Quick Audit</button>
+        </div>
+    </div></div>`;
+    return html;
+}
+
+function renderExecutiveSummarySection(summary, overallScore) {
+    if (!summary) return '';
+    let html = '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Quick Wins</h3></div><div class="Polaris-Card__Section">';
+    if (summary.top_opportunities && summary.top_opportunities.length) {
+        html += '<div class="quick-wins-grid">';
+        summary.top_opportunities.slice(0, 6).forEach(opp => {
+            const tone = opp.severity === 'error' ? 'critical' : (opp.severity === 'warning' ? 'warning' : 'info');
+            html += `<div class="quick-win-card">
+                <div class="quick-win-card__header"><span class="Polaris-Badge Polaris-Badge--${tone}">${escapeHtml(opp.severity)}</span>
+                    <span class="Polaris-Text--bodySm Polaris-Text--subdued">${escapeHtml(opp.category)}</span></div>
+                <p class="Polaris-Text--bodySm" style="margin:var(--p-space-100) 0">${escapeHtml(opp.issue)}</p>
+                <p class="Polaris-Text--bodySm Polaris-Text--subdued">${escapeHtml(opp.recommendation)}</p>
+            </div>`;
+        });
+        html += '</div>';
+    }
+    html += '</div></div>';
+
+    if (summary.sales_narrative) {
+        const sn = summary.sales_narrative;
+        html += '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Growth Analysis</h3></div><div class="Polaris-Card__Section">';
+        [
+            { title: "What's Holding Growth Back", content: sn.whats_holding_growth_back, tone: 'critical' },
+            { title: "Fix in 30 Days", content: sn.fix_in_30_days, tone: 'warning' },
+            { title: "Fix Next Quarter", content: sn.fix_next_quarter, tone: 'info' },
+            { title: "Expected Outcomes", content: sn.expected_outcomes, tone: 'success' },
+        ].forEach(s => {
+            if (!s.content) return;
+            html += `<div class="narrative-section narrative-section--${s.tone}">
+                <h4 class="Polaris-Text--headingSm">${escapeHtml(s.title)}</h4>
+                <pre class="Polaris-Text--bodySm" style="white-space:pre-wrap;font-family:inherit;margin:var(--p-space-100) 0 var(--p-space-300)">${escapeHtml(s.content)}</pre>
+            </div>`;
+        });
+        html += '</div></div>';
+    }
+    return html;
+}
+
+function renderBrandsList(brands) {
+    let html = '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section" style="display:flex;justify-content:space-between;align-items:center">';
+    html += '<h2 class="Polaris-Text--headingXl">Brands</h2>';
+    html += '<button class="Polaris-Button Polaris-Button--primary" data-action="new-brand">+ New Brand</button>';
+    html += '</div></div>';
+    if (!brands.length) {
+        return html + '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section text-center"><p class="Polaris-Text--bodySm Polaris-Text--subdued">No brands yet.</p></div></div>';
+    }
+    html += '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section" style="padding:0"><div class="overflow-x"><table class="Polaris-DataTable"><thead><tr><th>Brand</th><th>Domain</th><th>Industry</th><th>Score</th><th>Trend</th><th>Audits</th></tr></thead><tbody>';
+    brands.forEach(b => {
+        const delta = (b.latest_score != null && b.previous_score != null) ? (b.latest_score - b.previous_score) : null;
+        const deltaStr = delta != null ? (delta >= 0 ? `+${delta}` : `${delta}`) : '-';
+        const deltaClass = delta != null ? (delta >= 0 ? 'Polaris-Text--success' : 'Polaris-Text--critical') : '';
+        html += `<tr class="brand-row" data-brand-id="${escapeHtml(b.id)}" style="cursor:pointer">
+            <td><strong>${escapeHtml(b.name)}</strong></td><td>${escapeHtml(b.primary_domain)}</td>
+            <td>${escapeHtml(b.industry || '-')}</td>
+            <td>${b.latest_score != null ? `<span class="Polaris-Badge Polaris-Badge--${scoreTone(b.latest_score)}">${b.latest_score}</span>` : '-'}</td>
+            <td><span class="${deltaClass}">${deltaStr}</span></td><td>${b.audit_count || 0}</td></tr>`;
+    });
+    html += '</tbody></table></div></div></div>';
+    return html;
+}
+
+function renderBrandDetail(brand, audits) {
+    if (!brand) return '<p>Brand not found</p>';
+    let html = `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><h2 class="Polaris-Text--headingXl">${escapeHtml(brand.name)}</h2>
+                <p class="Polaris-Text--bodySm Polaris-Text--subdued">${escapeHtml(brand.primary_domain)}</p></div>
+            <div>${brand.latest_score != null ? `<span class="Polaris-Badge Polaris-Badge--${scoreTone(brand.latest_score)}" style="font-size:1.2em;padding:6px 12px">${brand.latest_score}/100</span>` : ''}</div>
+        </div>
+    </div></div>`;
+    html += '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Profile</h3></div><div class="Polaris-Card__Section"><div class="kpi-grid">';
+    if (brand.industry) html += renderIntelKPI('Industry', brand.industry, '');
+    if (brand.revenue_range) html += renderIntelKPI('Revenue', brand.revenue_range, 'Client provided');
+    if (brand.persona) html += renderIntelKPI('Persona', brand.persona, '');
+    html += renderIntelKPI('Audits', String(brand.audit_count || 0), '');
+    html += '</div>';
+    if (brand.description) html += `<p class="Polaris-Text--bodyMd mt-200">${escapeHtml(brand.description)}</p>`;
+    html += '</div></div>';
+    if (audits && audits.length) {
+        html += '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Recent Audits</h3></div><div class="Polaris-Card__Section" style="padding:0"><div class="overflow-x"><table class="Polaris-DataTable"><thead><tr><th>Date</th><th>URL</th><th>Score</th><th>Change</th><th>Actions</th></tr></thead><tbody>';
+        audits.slice(0, 5).forEach(a => {
+            const date = a.created_at ? new Date(a.created_at).toLocaleDateString() : '-';
+            const ds = a.score_delta != null ? (a.score_delta >= 0 ? `+${a.score_delta}` : `${a.score_delta}`) : '-';
+            const dc = a.score_delta != null ? (a.score_delta >= 0 ? 'Polaris-Text--success' : 'Polaris-Text--critical') : '';
+            html += `<tr><td>${date}</td><td class="break-all">${escapeHtml(a.audited_url)}</td><td><span class="Polaris-Badge Polaris-Badge--${scoreTone(a.overall_score)}">${a.overall_score}</span></td><td><span class="${dc}">${ds}</span></td><td><button class="Polaris-Button Polaris-Button--plain" data-view-audit="${escapeHtml(a.id)}">View</button> <button class="Polaris-Button Polaris-Button--plain" data-export-pdf="${escapeHtml(a.id)}">PDF</button></td></tr>`;
+        });
+        html += '</tbody></table></div></div></div>';
+    }
+    return html;
+}
+
+function renderAuditHistoryTable(audits, brandName) {
+    let html = `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section"><h2 class="Polaris-Text--headingXl">Audits${brandName ? ' - ' + escapeHtml(brandName) : ''}</h2></div></div>`;
+    if (!audits || !audits.length) return html + '<div class="Polaris-Card"><div class="Polaris-Card__Section text-center"><p class="Polaris-Text--bodySm Polaris-Text--subdued">No audits yet.</p></div></div>';
+    html += '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section" style="padding:0"><div class="overflow-x"><table class="Polaris-DataTable"><thead><tr><th>Date</th><th>URL</th><th>Score</th><th>Change</th><th>Duration</th><th>Actions</th></tr></thead><tbody>';
+    audits.forEach(a => {
+        const date = a.created_at ? new Date(a.created_at).toLocaleString() : '-';
+        const ds = a.score_delta != null ? (a.score_delta >= 0 ? `+${a.score_delta}` : `${a.score_delta}`) : '-';
+        const dc = a.score_delta != null ? (a.score_delta >= 0 ? 'Polaris-Text--success' : 'Polaris-Text--critical') : '';
+        const dur = a.duration_ms ? `${(a.duration_ms / 1000).toFixed(1)}s` : '-';
+        html += `<tr><td style="white-space:nowrap">${date}</td><td class="break-all">${escapeHtml(a.audited_url)}</td><td><span class="Polaris-Badge Polaris-Badge--${scoreTone(a.overall_score)}">${a.overall_score}</span></td><td><span class="${dc}">${ds}</span></td><td>${dur}</td><td><button class="Polaris-Button Polaris-Button--plain" data-view-audit="${escapeHtml(a.id)}">View</button> <button class="Polaris-Button Polaris-Button--plain" data-export-pdf="${escapeHtml(a.id)}">PDF</button></td></tr>`;
+    });
+    html += '</tbody></table></div></div></div>';
+    return html;
+}
+
+function renderNewBrandForm() {
+    return `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <h2 class="Polaris-Text--headingXl mb-400">Create New Brand</h2>
+        <form id="brand-form" class="brand-form">
+            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-name">Brand Name *</label>
+                <input type="text" id="brand-name" class="Polaris-TextField__Input" required placeholder="e.g. Acme Corp" /></div>
+            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-domain">Primary Domain *</label>
+                <input type="text" id="brand-domain" class="Polaris-TextField__Input" required placeholder="e.g. acme.com" /></div>
+            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-industry">Industry</label>
+                <input type="text" id="brand-industry" class="Polaris-TextField__Input" placeholder="e.g. E-commerce" /></div>
+            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-description">Description</label>
+                <textarea id="brand-description" class="Polaris-TextField__Input" rows="3" placeholder="What does this brand do?"></textarea></div>
+            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-persona">Target Persona</label>
+                <input type="text" id="brand-persona" class="Polaris-TextField__Input" placeholder="e.g. SMB owners, 25-45" /></div>
+            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-revenue">Revenue Range</label>
+                <select id="brand-revenue" class="Polaris-TextField__Input"><option value="">Select...</option>
+                    <option value="<$1M">&lt;$1M</option><option value="$1-5M">$1-5M</option><option value="$5-20M">$5-20M</option>
+                    <option value="$20-100M">$20-100M</option><option value="$100M+">$100M+</option></select></div>
+            <button type="submit" class="Polaris-Button Polaris-Button--primary">Create Brand</button>
+        </form></div></div>`;
+}
+
+function renderBrandSettings(brand) {
+    if (!brand) return '';
+    const theme = brand.theme_json || {};
+    return `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <h2 class="Polaris-Text--headingXl mb-400">Settings - ${escapeHtml(brand.name)}</h2>
+        <form id="brand-update-form" class="brand-form">
+            <div class="form-field mb-300"><label>Name</label><input type="text" id="edit-brand-name" class="Polaris-TextField__Input" value="${escapeHtml(brand.name || '')}" /></div>
+            <div class="form-field mb-300"><label>Industry</label><input type="text" id="edit-brand-industry" class="Polaris-TextField__Input" value="${escapeHtml(brand.industry || '')}" /></div>
+            <div class="form-field mb-300"><label>Description</label><textarea id="edit-brand-description" class="Polaris-TextField__Input" rows="3">${escapeHtml(brand.description || '')}</textarea></div>
+            <div class="form-field mb-300"><label>Persona</label><input type="text" id="edit-brand-persona" class="Polaris-TextField__Input" value="${escapeHtml(brand.persona || '')}" /></div>
+            <div class="form-field mb-300"><label>Revenue</label><select id="edit-brand-revenue" class="Polaris-TextField__Input"><option value="">Select...</option>${['<$1M','$1-5M','$5-20M','$20-100M','$100M+'].map(v=>`<option value="${v}" ${brand.revenue_range===v?'selected':''}>${v}</option>`).join('')}</select></div>
+            <button type="submit" class="Polaris-Button Polaris-Button--primary">Save Profile</button>
+        </form>
+    </div></div>
+    <div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Report Theme</h3></div><div class="Polaris-Card__Section">
+        <div class="form-field mb-300"><label>Logo</label><input type="file" id="logo-upload" accept="image/png,image/jpeg,image/svg+xml,image/webp" />
+            ${brand.logo_path ? `<p class="Polaris-Text--bodySm Polaris-Text--success mt-100">Current: ${escapeHtml(brand.logo_path)}</p>` : ''}</div>
+        <div class="form-field mb-300"><label>Primary Color</label><input type="color" id="theme-primary-color" value="${escapeHtml(theme.primary_color || '#a58464')}" /></div>
+        <div class="form-field mb-300"><label>Background Color</label><input type="color" id="theme-bg-color" value="${escapeHtml(theme.bg_color || '#faf9f7')}" /></div>
+        <div class="form-field mb-300"><label>Background Image</label><input type="file" id="bg-upload" accept="image/png,image/jpeg,image/webp" />
+            ${theme.bg_image_path ? `<p class="Polaris-Text--bodySm Polaris-Text--success mt-100">Current: ${escapeHtml(theme.bg_image_path)}</p>` : ''}</div>
+        <button class="Polaris-Button Polaris-Button--primary" id="save-theme-btn">Save Theme</button>
+    </div></div>`;
+}
+
+function renderReportsPage(brand, audits) {
+    if (!brand) return '';
+    let html = `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section"><h2 class="Polaris-Text--headingXl mb-200">Reports - ${escapeHtml(brand.name)}</h2><p class="Polaris-Text--bodySm Polaris-Text--subdued">Generate branded PDF reports.</p></div></div>`;
+    if (!audits || !audits.length) return html + '<div class="Polaris-Card"><div class="Polaris-Card__Section text-center"><p class="Polaris-Text--bodySm Polaris-Text--subdued">Run an audit first.</p></div></div>';
+    html += '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section" style="padding:0"><div class="overflow-x"><table class="Polaris-DataTable"><thead><tr><th>Date</th><th>URL</th><th>Score</th><th></th></tr></thead><tbody>';
+    audits.forEach(a => {
+        const date = a.created_at ? new Date(a.created_at).toLocaleDateString() : '-';
+        html += `<tr><td>${date}</td><td class="break-all">${escapeHtml(a.audited_url)}</td><td><span class="Polaris-Badge Polaris-Badge--${scoreTone(a.overall_score)}">${a.overall_score}</span></td><td><button class="Polaris-Button Polaris-Button--primary" data-export-pdf="${escapeHtml(a.id)}">Generate PDF</button></td></tr>`;
+    });
+    html += '</tbody></table></div></div></div>';
+    return html;
+}
+
+function renderQuickAuditForm() {
+    return `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <h2 class="Polaris-Text--headingXl mb-400">Quick Audit</h2>
+        <p class="Polaris-Text--bodySm Polaris-Text--subdued mb-300">Run a one-off audit without saving to a brand.</p>
+        <form id="quick-audit-form" class="brand-form">
+            <div class="form-field mb-300"><label for="qa-url">URL *</label><input type="url" id="qa-url" class="Polaris-TextField__Input" required placeholder="https://example.com" /></div>
+            <div style="display:flex;gap:var(--p-space-400);flex-wrap:wrap;margin-bottom:var(--p-space-300)">
+                <label class="Polaris-Checkbox"><input type="checkbox" id="qa-crawl" /><span class="Polaris-Checkbox__Input"></span> Crawl</label>
+                <label class="Polaris-Checkbox"><input type="checkbox" id="qa-psi" /><span class="Polaris-Checkbox__Input"></span> PageSpeed</label>
+                <label class="Polaris-Checkbox"><input type="checkbox" id="qa-schema" /><span class="Polaris-Checkbox__Input"></span> Schema</label>
+                <label class="Polaris-Checkbox"><input type="checkbox" id="qa-intel" /><span class="Polaris-Checkbox__Input"></span> Intel</label>
+            </div>
+            <button type="submit" class="Polaris-Button Polaris-Button--primary">Run Audit</button>
+        </form></div></div>`;
+}
+
+function renderBrandAuditForm(brand) {
+    if (!brand) return '';
+    return `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <h2 class="Polaris-Text--headingXl mb-400">New Audit - ${escapeHtml(brand.name)}</h2>
+        <form id="brand-audit-form" class="brand-form">
+            <div class="form-field mb-300"><label for="ba-url">URL *</label><input type="url" id="ba-url" class="Polaris-TextField__Input" required value="https://${escapeHtml(brand.primary_domain)}" /></div>
+            <div style="display:flex;gap:var(--p-space-400);flex-wrap:wrap;margin-bottom:var(--p-space-300)">
+                <label class="Polaris-Checkbox"><input type="checkbox" id="ba-crawl" /><span class="Polaris-Checkbox__Input"></span> Crawl</label>
+                <label class="Polaris-Checkbox"><input type="checkbox" id="ba-psi" /><span class="Polaris-Checkbox__Input"></span> PageSpeed</label>
+                <label class="Polaris-Checkbox"><input type="checkbox" id="ba-schema" /><span class="Polaris-Checkbox__Input"></span> Schema</label>
+                <label class="Polaris-Checkbox"><input type="checkbox" id="ba-intel" /><span class="Polaris-Checkbox__Input"></span> Intel</label>
+            </div>
+            <p class="Polaris-Text--bodySm Polaris-Text--subdued mb-300">Results saved to ${escapeHtml(brand.name)}'s history.</p>
+            <button type="submit" class="Polaris-Button Polaris-Button--primary">Run & Save Audit</button>
+        </form></div></div>`;
 }
