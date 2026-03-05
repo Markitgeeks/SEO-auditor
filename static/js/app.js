@@ -19,15 +19,11 @@ const results = document.getElementById('results');
 const categoriesGrid = document.getElementById('categories-grid');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
 const includeExternalCb = document.getElementById('include-external');
-const intelTabBtn = document.getElementById('intel-tab-btn');
-
-const crawlForm = document.getElementById('crawl-form');
-const crawlUrlInput = document.getElementById('crawl-url-input');
+const includeCrawlCb = document.getElementById('include-crawl');
 const crawlMaxPages = document.getElementById('crawl-max-pages');
-const crawlBtn = document.getElementById('crawl-btn');
-const crawlErrorMsg = document.getElementById('crawl-error-msg');
-const crawlLoading = document.getElementById('crawl-loading');
-const crawlResults = document.getElementById('crawl-results');
+const crawlPagesWrapper = document.getElementById('crawl-pages-wrapper');
+const intelTabBtn = document.getElementById('intel-tab-btn');
+const crawlTabBtn = document.getElementById('crawl-tab-btn');
 const crawlResultsContent = document.getElementById('crawl-results-content');
 
 window._lastAuditData = null;
@@ -107,6 +103,7 @@ function switchTab(btn, tabId) {
     document.querySelectorAll('.Polaris-Tabs__Tab').forEach(t => t.classList.remove('Polaris-Tabs__Tab--selected'));
     btn.classList.add('Polaris-Tabs__Tab--selected');
     document.getElementById('seo-tab').classList.add('hidden');
+    document.getElementById('crawl-tab').classList.add('hidden');
     document.getElementById('intel-tab').classList.add('hidden');
     document.getElementById(tabId).classList.remove('hidden');
 }
@@ -450,9 +447,14 @@ form.addEventListener('submit', async (e) => {
     auditBtn.classList.add('disabled');
 
     try {
-        const includeExternal = includeExternalCb.checked;
         const body = { url };
-        if (includeExternal) {
+
+        if (includeCrawlCb.checked) {
+            body.include_crawl = true;
+            body.crawl_max_pages = parseInt(crawlMaxPages.value, 10) || 10;
+        }
+
+        if (includeExternalCb.checked) {
             body.include_external = true;
             body.external_modules = ['similarweb', 'semrush'];
         }
@@ -475,6 +477,15 @@ form.addEventListener('submit', async (e) => {
         document.getElementById('audited-url').textContent = data.url;
         categoriesGrid.innerHTML = data.categories.map(renderCategory).join('');
         renderOverallScore(data.overall_score);
+
+        // Show/hide crawl tab
+        if (data.crawl_results) {
+            crawlTabBtn.style.display = '';
+            crawlResultsContent.innerHTML = renderCrawlResults(data.crawl_results);
+        } else {
+            crawlTabBtn.style.display = 'none';
+            crawlResultsContent.innerHTML = '';
+        }
 
         // Show/hide intel tab
         if (data.external_insights) {
@@ -500,41 +511,9 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-crawlForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const url = crawlUrlInput.value.trim();
-    const maxPages = parseInt(crawlMaxPages.value, 10) || 10;
-    if (!url) return;
-
-    crawlErrorMsg.classList.add('hidden');
-    crawlResults.classList.add('hidden');
-    crawlLoading.classList.remove('hidden');
-    crawlBtn.disabled = true;
-
-    try {
-        const resp = await fetch(API_BASE + '/api/crawl', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url, max_pages: maxPages }),
-        });
-
-        if (!resp.ok) {
-            const data = await resp.json().catch(() => ({}));
-            throw new Error(data.detail || `Crawl error (${resp.status})`);
-        }
-
-        const data = await resp.json();
-        crawlResultsContent.innerHTML = renderCrawlResults(data);
-
-        crawlLoading.classList.add('hidden');
-        crawlResults.classList.remove('hidden');
-    } catch (err) {
-        crawlLoading.classList.add('hidden');
-        crawlErrorMsg.textContent = err.message;
-        crawlErrorMsg.classList.remove('hidden');
-    } finally {
-        crawlBtn.disabled = false;
-    }
+// Toggle crawl max-pages visibility
+includeCrawlCb.addEventListener('change', () => {
+    crawlPagesWrapper.style.display = includeCrawlCb.checked ? 'flex' : 'none';
 });
 
 downloadPdfBtn.addEventListener('click', async () => {
@@ -570,5 +549,6 @@ downloadPdfBtn.addEventListener('click', async () => {
     }
 });
 
-// Hide intel tab by default until results arrive
+// Hide optional tabs by default until results arrive
+crawlTabBtn.style.display = 'none';
 intelTabBtn.style.display = 'none';

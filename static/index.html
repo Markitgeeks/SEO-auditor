@@ -30,11 +30,11 @@
         <!-- Page header -->
         <div class="text-center mb-600">
             <h1 class="Polaris-Text--headingXl mb-200">SEO Auditor</h1>
-            <p class="Polaris-Text--bodyMd Polaris-Text--subdued">Analyze any URL across 14 SEO categories with optional market intelligence</p>
+            <p class="Polaris-Text--bodyMd Polaris-Text--subdued">Analyze any URL across 14 SEO categories with site crawl and market intelligence</p>
         </div>
 
-        <!-- Audit form -->
-        <div style="max-width:640px;margin:0 auto" class="mb-400">
+        <!-- Combined audit form -->
+        <div style="max-width:640px;margin:0 auto" class="mb-600">
             <form id="audit-form">
                 <div style="display:flex;gap:var(--p-space-200)">
                     <div class="Polaris-TextField" style="flex:1">
@@ -50,34 +50,14 @@
                         Audit
                     </button>
                 </div>
-                <div class="mt-300">
+                <div class="mt-300" style="display:flex;flex-wrap:wrap;gap:var(--p-space-200) var(--p-space-600);align-items:center">
                     <label class="Polaris-Checkbox">
-                        <input type="checkbox" id="include-external">
-                        <span>Include Market Intelligence</span>
+                        <input type="checkbox" id="include-crawl" checked>
+                        <span>Site Crawl</span>
                     </label>
-                </div>
-                <p id="error-msg" class="hidden mt-200" style="color:var(--p-color-text-critical);font-size:var(--p-font-size-325)"></p>
-            </form>
-        </div>
-
-        <!-- Crawl section -->
-        <div style="max-width:640px;margin:0 auto" class="mb-800">
-            <details>
-                <summary class="Polaris-Text--bodySm Polaris-Text--subdued" style="cursor:pointer;font-weight:var(--p-font-weight-medium)">
-                    Site Crawl (multi-page analysis)
-                </summary>
-                <form id="crawl-form" class="mt-300">
-                    <div style="display:flex;gap:var(--p-space-200)">
-                        <div class="Polaris-TextField" style="flex:1">
-                            <input
-                                id="crawl-url-input"
-                                type="url"
-                                placeholder="https://example.com"
-                                required
-                                class="Polaris-TextField__Input"
-                            >
-                        </div>
-                        <div class="Polaris-TextField" style="width:72px">
+                    <div id="crawl-pages-wrapper" style="display:flex;align-items:center;gap:var(--p-space-100)">
+                        <span class="Polaris-Text--bodySm Polaris-Text--subdued">Max pages:</span>
+                        <div class="Polaris-TextField" style="width:56px">
                             <input
                                 id="crawl-max-pages"
                                 type="number"
@@ -85,29 +65,17 @@
                                 max="50"
                                 value="10"
                                 class="Polaris-TextField__Input"
-                                title="Max pages to crawl"
-                                style="text-align:center"
+                                style="text-align:center;padding:var(--p-space-100)"
                             >
                         </div>
-                        <button type="submit" id="crawl-btn" class="Polaris-Button Polaris-Button--default">
-                            Crawl
-                        </button>
                     </div>
-                    <p class="Polaris-Text--bodySm Polaris-Text--subdued mt-200">Max pages (1-50). Crawl follows internal links via BFS.</p>
-                    <p id="crawl-error-msg" class="hidden mt-200" style="color:var(--p-color-text-critical);font-size:var(--p-font-size-325)"></p>
-                </form>
-            </details>
-        </div>
-
-        <!-- Crawl loading -->
-        <div id="crawl-loading" class="hidden flex-center gap-300 mb-600">
-            <div class="Polaris-Spinner Polaris-Spinner--large"></div>
-            <p class="Polaris-Text--bodyMd Polaris-Text--subdued">Crawling site...</p>
-        </div>
-
-        <!-- Crawl results -->
-        <div id="crawl-results" class="hidden fade-in mb-600">
-            <div id="crawl-results-content"></div>
+                    <label class="Polaris-Checkbox">
+                        <input type="checkbox" id="include-external">
+                        <span>Market Intelligence</span>
+                    </label>
+                </div>
+                <p id="error-msg" class="hidden mt-200" style="color:var(--p-color-text-critical);font-size:var(--p-font-size-325)"></p>
+            </form>
         </div>
 
         <!-- Audit loading -->
@@ -122,6 +90,7 @@
             <!-- Tabs -->
             <div class="Polaris-Tabs mb-600" id="result-tabs">
                 <button class="Polaris-Tabs__Tab Polaris-Tabs__Tab--selected" data-tab="seo-tab" onclick="switchTab(this,'seo-tab')">SEO Audit</button>
+                <button class="Polaris-Tabs__Tab" data-tab="crawl-tab" id="crawl-tab-btn" onclick="switchTab(this,'crawl-tab')">Site Crawl</button>
                 <button class="Polaris-Tabs__Tab" data-tab="intel-tab" id="intel-tab-btn" onclick="switchTab(this,'intel-tab')">Market Intelligence</button>
             </div>
 
@@ -149,6 +118,11 @@
 
                 <!-- Category Grid -->
                 <div id="categories-grid" class="grid-3"></div>
+            </div>
+
+            <!-- Site Crawl Tab -->
+            <div id="crawl-tab" class="hidden">
+                <div id="crawl-results-content"></div>
             </div>
 
             <!-- Market Intelligence Tab -->

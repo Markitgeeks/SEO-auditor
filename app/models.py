@@ -8,6 +8,8 @@ class AuditRequest(BaseModel):
     url: HttpUrl
     include_external: bool = False
     external_modules: Optional[list[str]] = None  # ["similarweb", "semrush"]
+    include_crawl: bool = False
+    crawl_max_pages: int = 10
 
 
 class Issue(BaseModel):
@@ -19,13 +21,6 @@ class CategoryResult(BaseModel):
     name: str
     score: int
     issues: list[Issue]
-
-
-class AuditResponse(BaseModel):
-    url: str
-    overall_score: int
-    categories: list[CategoryResult]
-    external_insights: Optional[ExternalInsights] = None
 
 
 # --- Crawl models ---
@@ -66,3 +61,11 @@ class CrawlResponse(BaseModel):
     duplicate_descriptions: list[CrawlDuplicate]
     score: int
     issues: list[Issue]
+
+
+class AuditResponse(BaseModel):
+    url: str
+    overall_score: int
+    categories: list[CategoryResult]
+    external_insights: Optional[ExternalInsights] = None
+    crawl_results: Optional[CrawlResponse] = None

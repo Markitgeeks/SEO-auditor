@@ -117,11 +117,17 @@ async def run_audit(req: AuditRequest):
     if req.include_external:
         external_insights = _run_external_intel(url, req.external_modules)
 
+    # --- Site crawl (opt-in) ---
+    crawl_results = None
+    if req.include_crawl:
+        crawl_results = _run_crawl(url, min(req.crawl_max_pages, 50))
+
     return AuditResponse(
         url=url,
         overall_score=overall,
         categories=categories,
         external_insights=external_insights,
+        crawl_results=crawl_results,
     )
 
 
@@ -157,55 +163,58 @@ def _run_external_intel(url: str, modules: Optional[list] = None) -> ExternalIns
     return ExternalInsights(similarweb=sw_result, semrush=sr_result)
 
 
+def _run_crawl(url: str, max_pages: int):
+    """Run site crawl and return CrawlResponse, or None on failure."""
+    from app.models import CrawlResponse, CrawlPageSummary, CrawlBrokenLink, CrawlDuplicate
+    try:
+        result = crawl_site(url, max_pages=max_pages)
+        crawl_analysis = analyze_crawl(result)
+
+        pages = [
+            CrawlPageSummary(
+                url=p.url, title=p.title, description=p.description,
+                status_code=p.status_code, internal_links=len(p.internal_links),
+                depth=p.depth,
+            )
+            for p in result.pages
+        ]
+        broken_links = [
+            CrawlBrokenLink(source_url=bl.source_url, target_url=bl.target_url, status_code=bl.status_code)
+            for bl in result.broken_links
+        ]
+        duplicate_titles = [
+            CrawlDuplicate(value=title, pages=urls)
+            for title, urls in result.duplicate_titles.items()
+        ]
+        duplicate_descriptions = [
+            CrawlDuplicate(value=desc, pages=urls)
+            for desc, urls in result.duplicate_descriptions.items()
+        ]
+
+        return CrawlResponse(
+            url=url,
+            pages_crawled=len(result.pages),
+            max_depth=result.max_depth,
+            pages=pages,
+            broken_links=broken_links,
+            orphan_pages=result.orphan_pages,
+            duplicate_titles=duplicate_titles,
+            duplicate_descriptions=duplicate_descriptions,
+            score=crawl_analysis.score,
+            issues=crawl_analysis.issues,
+        )
+    except Exception:
+        return None
+
+
 @app.post("/api/crawl", response_model=CrawlResponse)
 async def run_crawl(req: CrawlRequest):
     url = str(req.url)
-    max_pages = min(req.max_pages, 50)  # hard cap
-
-    try:
-        result = crawl_site(url, max_pages=max_pages)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Crawl failed: {e}")
-
-    # Analyze crawl results
-    crawl_analysis = analyze_crawl(result)
-
-    pages = [
-        CrawlPageSummary(
-            url=p.url, title=p.title, description=p.description,
-            status_code=p.status_code, internal_links=len(p.internal_links),
-            depth=p.depth,
-        )
-        for p in result.pages
-    ]
-
-    broken_links = [
-        CrawlBrokenLink(source_url=bl.source_url, target_url=bl.target_url, status_code=bl.status_code)
-        for bl in result.broken_links
-    ]
-
-    duplicate_titles = [
-        CrawlDuplicate(value=title, pages=urls)
-        for title, urls in result.duplicate_titles.items()
-    ]
-
-    duplicate_descriptions = [
-        CrawlDuplicate(value=desc, pages=urls)
-        for desc, urls in result.duplicate_descriptions.items()
-    ]
-
-    return CrawlResponse(
-        url=url,
-        pages_crawled=len(result.pages),
-        max_depth=result.max_depth,
-        pages=pages,
-        broken_links=broken_links,
-        orphan_pages=result.orphan_pages,
-        duplicate_titles=duplicate_titles,
-        duplicate_descriptions=duplicate_descriptions,
-        score=crawl_analysis.score,
-        issues=crawl_analysis.issues,
-    )
+    max_pages = min(req.max_pages, 50)
+    result = _run_crawl(url, max_pages)
+    if result is None:
+        raise HTTPException(status_code=400, detail="Crawl failed")
+    return result
 
 
 @app.post("/api/report/pdf")

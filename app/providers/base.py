@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
+import certifi
 import requests
 
 from app.config import EXTERNAL_API_TIMEOUT
@@ -41,6 +42,7 @@ class BaseProvider(ABC):
                 params=params,
                 timeout=self.timeout,
                 headers=self._headers(),
+                verify=certifi.where(),
             )
         except requests.Timeout:
             raise ProviderError(f"API timeout after {self.timeout}s")

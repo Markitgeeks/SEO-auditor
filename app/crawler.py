@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from urllib.parse import urljoin, urlparse, urlunparse
 
+import certifi
 import requests
 from bs4 import BeautifulSoup
 
@@ -79,6 +80,7 @@ def _check_link(url: str) -> tuple[str, int]:
         resp = requests.head(
             url, headers={"User-Agent": USER_AGENT},
             timeout=CRAWL_TIMEOUT, allow_redirects=True,
+            verify=certifi.where(),
         )
         return url, resp.status_code
     except requests.RequestException:
@@ -107,7 +109,7 @@ def crawl_site(start_url: str, max_pages: int = 20) -> CrawlResult:
         visited.add(url)
 
         try:
-            resp = requests.get(url, headers=headers, timeout=CRAWL_TIMEOUT, allow_redirects=True)
+            resp = requests.get(url, headers=headers, timeout=CRAWL_TIMEOUT, allow_redirects=True, verify=certifi.where())
         except requests.RequestException:
             continue
 

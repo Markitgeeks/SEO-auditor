@@ -1,6 +1,7 @@
 import time
 from urllib.parse import urlparse
 
+import certifi
 import requests
 from bs4 import BeautifulSoup
 
@@ -22,7 +23,7 @@ class FetchResult:
 
 def fetch_page(url: str) -> FetchResult:
     headers = {"User-Agent": USER_AGENT}
-    resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT, allow_redirects=True)
+    resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT, allow_redirects=True, verify=certifi.where())
     resp.raise_for_status()
     soup = BeautifulSoup(resp.content, "lxml")
     return FetchResult(url=url, response=resp, soup=soup)
