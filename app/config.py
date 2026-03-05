@@ -37,3 +37,16 @@ CATEGORY_WEIGHTS = {
 USER_AGENT = (
     "Mozilla/5.0 (compatible; SEOAuditor/1.0; +https://github.com/seo-auditor)"
 )
+
+# --- External Intelligence APIs ---
+import os
+
+SIMILARWEB_API_KEY = os.environ.get("SIMILARWEB_API_KEY", "")
+SEMRUSH_API_KEY = os.environ.get("SEMRUSH_API_KEY", "")
+
+EXTERNAL_API_TIMEOUT = 20  # seconds per external API call
+EXTERNAL_MODULE_TIMEOUT = 30  # total timeout for all external modules
+
+# --- Cache ---
+CACHE_TTL_SECONDS = 3600  # 1 hour
+CACHE_MAX_ENTRIES = 200

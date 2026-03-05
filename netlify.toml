@@ -1,0 +1,31 @@
+[build]
+  publish = "static"
+  functions = "netlify/functions"
+
+[functions]
+  external_node_modules = []
+  included_files = [
+    "app/**",
+    "main.py",
+    "requirements.txt"
+  ]
+
+# Redirect /static/* to root (static/ is the publish dir on Netlify CDN)
+[[redirects]]
+  from = "/static/*"
+  to = "/:splat"
+  status = 200
+
+# Redirect API calls to the serverless function
+# /api/audit → /.netlify/functions/api/api/audit
+# Mangum strips /.netlify/functions/api, leaving /api/audit for FastAPI
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/api/:splat"
+  status = 200
+
+# SPA fallback — must be last
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

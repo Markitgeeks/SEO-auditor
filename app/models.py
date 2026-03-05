@@ -1,9 +1,13 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Literal
+from typing import Literal, Optional
+
+from app.external_models import ExternalInsights
 
 
 class AuditRequest(BaseModel):
     url: HttpUrl
+    include_external: bool = False
+    external_modules: Optional[list[str]] = None  # ["similarweb", "semrush"]
 
 
 class Issue(BaseModel):
@@ -21,6 +25,7 @@ class AuditResponse(BaseModel):
     url: str
     overall_score: int
     categories: list[CategoryResult]
+    external_insights: Optional[ExternalInsights] = None
 
 
 # --- Crawl models ---

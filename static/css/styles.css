@@ -1,20 +1,728 @@
+/* ============================================================
+   Shopify Polaris Design Tokens
+   Based on https://polaris.shopify.com/tokens
+   ============================================================ */
+
 :root {
-    --score-red: #ef4444;
-    --score-yellow: #f59e0b;
-    --score-green: #22c55e;
+    /* --- Surface / Background --- */
+    --p-color-bg: #f1f1f1;
+    --p-color-bg-surface: #ffffff;
+    --p-color-bg-surface-secondary: #f7f7f7;
+    --p-color-bg-surface-hover: #f2f2f2;
+    --p-color-bg-surface-active: #e8e8e8;
+    --p-color-bg-surface-selected: #edf4fe;
+    --p-color-bg-fill-brand: #008060;
+    --p-color-bg-fill-brand-hover: #006e52;
+    --p-color-bg-fill-brand-active: #005c45;
+    --p-color-bg-fill-brand-disabled: #babec3;
+    --p-color-bg-fill-success: #aee9d1;
+    --p-color-bg-fill-success-secondary: #e3f1df;
+    --p-color-bg-fill-critical: #fed3d1;
+    --p-color-bg-fill-critical-secondary: #fff4f4;
+    --p-color-bg-fill-warning: #ffea8a;
+    --p-color-bg-fill-warning-secondary: #fff5ea;
+    --p-color-bg-fill-info: #a4e8f2;
+    --p-color-bg-fill-info-secondary: #eef9fb;
+    --p-color-bg-fill-emphasis: #005bd3;
+    --p-color-bg-fill-emphasis-hover: #0040a1;
+    --p-color-bg-fill-secondary: #e3e3e3;
+    --p-color-bg-fill-transparent-hover: rgba(0,0,0,0.05);
+    --p-color-bg-fill-disabled: #f1f1f1;
+
+    /* --- Text --- */
+    --p-color-text: #303030;
+    --p-color-text-secondary: #616161;
+    --p-color-text-subdued: #6d7175;
+    --p-color-text-disabled: #8c9196;
+    --p-color-text-brand: #008060;
+    --p-color-text-interactive: #005bd3;
+    --p-color-text-interactive-hover: #0040a1;
+    --p-color-text-success: #008060;
+    --p-color-text-critical: #d72c0d;
+    --p-color-text-warning: #916a00;
+    --p-color-text-info: #0073b0;
+    --p-color-text-inverse: #ffffff;
+    --p-color-text-emphasis: #005bd3;
+
+    /* --- Border --- */
+    --p-color-border: #e1e3e5;
+    --p-color-border-secondary: #ebebeb;
+    --p-color-border-hover: #c9ccd0;
+    --p-color-border-interactive: #005bd3;
+    --p-color-border-interactive-hover: #0040a1;
+    --p-color-border-interactive-focus: #005bd3;
+    --p-color-border-critical: #d72c0d;
+    --p-color-border-success: #008060;
+    --p-color-border-warning: #b98900;
+    --p-color-border-info: #0073b0;
+    --p-color-border-emphasis: #005bd3;
+
+    /* --- Icon --- */
+    --p-color-icon: #5c5f62;
+    --p-color-icon-secondary: #8c9196;
+    --p-color-icon-interactive: #005bd3;
+    --p-color-icon-success: #008060;
+    --p-color-icon-critical: #d72c0d;
+    --p-color-icon-warning: #b98900;
+
+    /* --- Shadow --- */
+    --p-shadow-100: 0 1px 0 rgba(0,0,0,0.05);
+    --p-shadow-200: 0 1px 2px rgba(0,0,0,0.07);
+    --p-shadow-300: 0 2px 8px rgba(0,0,0,0.08);
+    --p-shadow-400: 0 4px 12px rgba(0,0,0,0.1);
+    --p-shadow-inset-200: inset 0 2px 4px rgba(0,0,0,0.06);
+
+    /* --- Border radius --- */
+    --p-border-radius-050: 2px;
+    --p-border-radius-100: 4px;
+    --p-border-radius-200: 8px;
+    --p-border-radius-300: 12px;
+    --p-border-radius-full: 9999px;
+
+    /* --- Space --- */
+    --p-space-025: 1px;
+    --p-space-050: 2px;
+    --p-space-100: 4px;
+    --p-space-150: 6px;
+    --p-space-200: 8px;
+    --p-space-300: 12px;
+    --p-space-400: 16px;
+    --p-space-500: 20px;
+    --p-space-600: 24px;
+    --p-space-800: 32px;
+    --p-space-1000: 40px;
+    --p-space-1200: 48px;
+    --p-space-1600: 64px;
+
+    /* --- Font --- */
+    --p-font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --p-font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+
+    --p-font-weight-regular: 450;
+    --p-font-weight-medium: 550;
+    --p-font-weight-semibold: 650;
+    --p-font-weight-bold: 700;
+
+    --p-font-size-275: 11px;
+    --p-font-size-300: 12px;
+    --p-font-size-325: 13px;
+    --p-font-size-350: 14px;
+    --p-font-size-400: 16px;
+    --p-font-size-500: 18px;
+    --p-font-size-600: 20px;
+    --p-font-size-750: 24px;
+    --p-font-size-900: 28px;
+    --p-font-size-1000: 32px;
+
+    --p-font-line-height-300: 12px;
+    --p-font-line-height-400: 16px;
+    --p-font-line-height-500: 20px;
+    --p-font-line-height-600: 24px;
+    --p-font-line-height-700: 28px;
+    --p-font-line-height-800: 32px;
+    --p-font-line-height-1000: 40px;
+    --p-font-line-height-1200: 48px;
+
+    --p-font-letter-spacing-densest: -0.54px;
+    --p-font-letter-spacing-denser: -0.3px;
+    --p-font-letter-spacing-dense: -0.2px;
+    --p-font-letter-spacing-normal: 0;
+
+    /* --- Score semantic colors --- */
+    --score-success: #008060;
+    --score-warning: #b98900;
+    --score-critical: #d72c0d;
+}
+
+
+/* ============================================================
+   Base / Reset
+   ============================================================ */
+
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 
 body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background: #0f172a;
-    color: #e2e8f0;
+    font-family: var(--p-font-family-sans);
+    font-size: var(--p-font-size-350);
+    font-weight: var(--p-font-weight-regular);
+    line-height: var(--p-font-line-height-500);
+    letter-spacing: var(--p-font-letter-spacing-normal);
+    color: var(--p-color-text);
+    background: var(--p-color-bg);
     min-height: 100vh;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
+
+
+/* ============================================================
+   Layout
+   ============================================================ */
+
+.Polaris-Page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--p-space-600) var(--p-space-400);
+}
+
+@media (min-width: 768px) {
+    .Polaris-Page {
+        padding: var(--p-space-800) var(--p-space-600);
+    }
+}
+
+
+/* ============================================================
+   Polaris TopBar
+   ============================================================ */
+
+.Polaris-TopBar {
+    background: #1a1a1a;
+    color: #ffffff;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--p-space-400);
+    box-shadow: var(--p-shadow-200);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+@media (min-width: 768px) {
+    .Polaris-TopBar {
+        padding: 0 var(--p-space-600);
+    }
+}
+
+.Polaris-TopBar__Logo {
+    display: flex;
+    align-items: center;
+    gap: var(--p-space-200);
+    font-size: var(--p-font-size-400);
+    font-weight: var(--p-font-weight-semibold);
+    letter-spacing: var(--p-font-letter-spacing-denser);
+}
+
+.Polaris-TopBar__LogoIcon {
+    width: 28px;
+    height: 28px;
+    background: var(--p-color-bg-fill-brand);
+    border-radius: var(--p-border-radius-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ============================================================
+   Polaris Card
+   ============================================================ */
+
+.Polaris-Card {
+    background: var(--p-color-bg-surface);
+    border-radius: var(--p-border-radius-300);
+    box-shadow: var(--p-shadow-200);
+    border: 1px solid var(--p-color-border-secondary);
+    overflow: hidden;
+}
+
+.Polaris-Card + .Polaris-Card {
+    margin-top: var(--p-space-400);
+}
+
+.Polaris-Card__Header {
+    padding: var(--p-space-400) var(--p-space-500);
+    border-bottom: 1px solid var(--p-color-border);
+}
+
+.Polaris-Card__Section {
+    padding: var(--p-space-400) var(--p-space-500);
+}
+
+.Polaris-Card__Section + .Polaris-Card__Section {
+    border-top: 1px solid var(--p-color-border);
+}
+
+
+/* ============================================================
+   Polaris Text
+   ============================================================ */
+
+.Polaris-Text--headingXl {
+    font-size: var(--p-font-size-900);
+    font-weight: var(--p-font-weight-bold);
+    line-height: var(--p-font-line-height-800);
+    letter-spacing: var(--p-font-letter-spacing-densest);
+}
+
+.Polaris-Text--headingLg {
+    font-size: var(--p-font-size-600);
+    font-weight: var(--p-font-weight-semibold);
+    line-height: var(--p-font-line-height-600);
+    letter-spacing: var(--p-font-letter-spacing-denser);
+}
+
+.Polaris-Text--headingMd {
+    font-size: var(--p-font-size-400);
+    font-weight: var(--p-font-weight-semibold);
+    line-height: var(--p-font-line-height-600);
+    letter-spacing: var(--p-font-letter-spacing-dense);
+}
+
+.Polaris-Text--headingSm {
+    font-size: var(--p-font-size-325);
+    font-weight: var(--p-font-weight-semibold);
+    line-height: var(--p-font-line-height-500);
+}
+
+.Polaris-Text--bodyMd {
+    font-size: var(--p-font-size-325);
+    font-weight: var(--p-font-weight-regular);
+    line-height: var(--p-font-line-height-500);
+}
+
+.Polaris-Text--bodySm {
+    font-size: var(--p-font-size-300);
+    font-weight: var(--p-font-weight-regular);
+    line-height: var(--p-font-line-height-400);
+}
+
+.Polaris-Text--subdued {
+    color: var(--p-color-text-secondary);
+}
+
+.Polaris-Text--success {
+    color: var(--p-color-text-success);
+}
+
+.Polaris-Text--critical {
+    color: var(--p-color-text-critical);
+}
+
+.Polaris-Text--warning {
+    color: var(--p-color-text-warning);
+}
+
+.Polaris-Text--emphasis {
+    color: var(--p-color-text-emphasis);
+}
+
+
+/* ============================================================
+   Polaris Button
+   ============================================================ */
+
+.Polaris-Button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--p-space-100);
+    padding: var(--p-space-150) var(--p-space-400);
+    font-family: var(--p-font-family-sans);
+    font-size: var(--p-font-size-325);
+    font-weight: var(--p-font-weight-medium);
+    line-height: var(--p-font-line-height-500);
+    border-radius: var(--p-border-radius-200);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    min-height: 36px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.Polaris-Button:focus-visible {
+    outline: 2px solid var(--p-color-border-interactive-focus);
+    outline-offset: 2px;
+}
+
+/* Primary */
+.Polaris-Button--primary {
+    background: var(--p-color-bg-fill-brand);
+    color: var(--p-color-text-inverse);
+    border-color: transparent;
+}
+
+.Polaris-Button--primary:hover {
+    background: var(--p-color-bg-fill-brand-hover);
+}
+
+.Polaris-Button--primary:active {
+    background: var(--p-color-bg-fill-brand-active);
+}
+
+.Polaris-Button--primary:disabled,
+.Polaris-Button--primary.disabled {
+    background: var(--p-color-bg-fill-brand-disabled);
+    color: var(--p-color-text-inverse);
+    cursor: not-allowed;
+}
+
+/* Secondary / Default */
+.Polaris-Button--default {
+    background: var(--p-color-bg-surface);
+    color: var(--p-color-text);
+    border-color: var(--p-color-border);
+    box-shadow: var(--p-shadow-100);
+}
+
+.Polaris-Button--default:hover {
+    background: var(--p-color-bg-surface-hover);
+    border-color: var(--p-color-border-hover);
+}
+
+.Polaris-Button--default:active {
+    background: var(--p-color-bg-surface-active);
+}
+
+/* Emphasis / Call-to-action */
+.Polaris-Button--emphasis {
+    background: var(--p-color-bg-fill-emphasis);
+    color: var(--p-color-text-inverse);
+}
+
+.Polaris-Button--emphasis:hover {
+    background: var(--p-color-bg-fill-emphasis-hover);
+}
+
+/* Plain */
+.Polaris-Button--plain {
+    background: transparent;
+    border-color: transparent;
+    color: var(--p-color-text-interactive);
+    padding: var(--p-space-050) var(--p-space-100);
+    min-height: auto;
+    box-shadow: none;
+}
+
+.Polaris-Button--plain:hover {
+    color: var(--p-color-text-interactive-hover);
+    text-decoration: underline;
+}
+
+/* Full width */
+.Polaris-Button--fullWidth {
+    width: 100%;
+}
+
+/* Large */
+.Polaris-Button--sizeLg {
+    padding: var(--p-space-200) var(--p-space-500);
+    font-size: var(--p-font-size-350);
+    min-height: 44px;
+}
+
+
+/* ============================================================
+   Polaris TextField
+   ============================================================ */
+
+.Polaris-TextField {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.Polaris-TextField__Input {
+    flex: 1;
+    width: 100%;
+    min-height: 36px;
+    padding: var(--p-space-150) var(--p-space-300);
+    font-family: var(--p-font-family-sans);
+    font-size: var(--p-font-size-325);
+    line-height: var(--p-font-line-height-500);
+    font-weight: var(--p-font-weight-regular);
+    color: var(--p-color-text);
+    background: var(--p-color-bg-surface);
+    border: 1px solid var(--p-color-border);
+    border-radius: var(--p-border-radius-200);
+    box-shadow: var(--p-shadow-inset-200);
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    outline: none;
+}
+
+.Polaris-TextField__Input::placeholder {
+    color: var(--p-color-text-disabled);
+}
+
+.Polaris-TextField__Input:hover {
+    border-color: var(--p-color-border-hover);
+}
+
+.Polaris-TextField__Input:focus {
+    border-color: var(--p-color-border-interactive-focus);
+    box-shadow: 0 0 0 1px var(--p-color-border-interactive-focus);
+}
+
+.Polaris-TextField__Input--lg {
+    min-height: 44px;
+    padding: var(--p-space-200) var(--p-space-400);
+    font-size: var(--p-font-size-350);
+}
+
+
+/* ============================================================
+   Polaris Badge
+   ============================================================ */
+
+.Polaris-Badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--p-space-100);
+    padding: var(--p-space-025) var(--p-space-200);
+    font-size: var(--p-font-size-300);
+    font-weight: var(--p-font-weight-medium);
+    line-height: var(--p-font-line-height-400);
+    border-radius: var(--p-border-radius-full);
+    white-space: nowrap;
+}
+
+.Polaris-Badge--success {
+    background: var(--p-color-bg-fill-success);
+    color: #0a5236;
+}
+
+.Polaris-Badge--warning {
+    background: var(--p-color-bg-fill-warning);
+    color: #6a5300;
+}
+
+.Polaris-Badge--critical {
+    background: var(--p-color-bg-fill-critical);
+    color: #a01b0e;
+}
+
+.Polaris-Badge--info {
+    background: var(--p-color-bg-fill-info);
+    color: #005278;
+}
+
+.Polaris-Badge--default {
+    background: var(--p-color-bg-fill-secondary);
+    color: var(--p-color-text-secondary);
+}
+
+
+/* ============================================================
+   Polaris Banner
+   ============================================================ */
+
+.Polaris-Banner {
+    padding: var(--p-space-300) var(--p-space-400);
+    border-radius: var(--p-border-radius-200);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-space-300);
+    font-size: var(--p-font-size-325);
+    line-height: var(--p-font-line-height-500);
+}
+
+.Polaris-Banner--info {
+    background: var(--p-color-bg-fill-info-secondary);
+    border: 1px solid var(--p-color-border-info);
+    color: var(--p-color-text-info);
+}
+
+.Polaris-Banner--warning {
+    background: var(--p-color-bg-fill-warning-secondary);
+    border: 1px solid var(--p-color-border-warning);
+    color: var(--p-color-text-warning);
+}
+
+.Polaris-Banner--critical {
+    background: var(--p-color-bg-fill-critical-secondary);
+    border: 1px solid var(--p-color-border-critical);
+    color: var(--p-color-text-critical);
+}
+
+.Polaris-Banner--success {
+    background: var(--p-color-bg-fill-success-secondary);
+    border: 1px solid var(--p-color-border-success);
+    color: var(--p-color-text-success);
+}
+
+.Polaris-Banner__Icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+
+/* ============================================================
+   Polaris Tabs
+   ============================================================ */
+
+.Polaris-Tabs {
+    display: flex;
+    border-bottom: 1px solid var(--p-color-border);
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.Polaris-Tabs__Tab {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--p-space-200) var(--p-space-400);
+    font-family: var(--p-font-family-sans);
+    font-size: var(--p-font-size-325);
+    font-weight: var(--p-font-weight-medium);
+    line-height: var(--p-font-line-height-500);
+    color: var(--p-color-text-secondary);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.12s, border-color 0.12s;
+    margin-bottom: -1px;
+}
+
+.Polaris-Tabs__Tab:hover {
+    color: var(--p-color-text);
+    background: var(--p-color-bg-fill-transparent-hover);
+}
+
+.Polaris-Tabs__Tab--selected {
+    color: var(--p-color-text);
+    border-bottom-color: var(--p-color-border-emphasis);
+    font-weight: var(--p-font-weight-semibold);
+}
+
+
+/* ============================================================
+   Polaris DataTable
+   ============================================================ */
+
+.Polaris-DataTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--p-font-size-325);
+}
+
+.Polaris-DataTable th {
+    text-align: left;
+    padding: var(--p-space-200) var(--p-space-300);
+    font-weight: var(--p-font-weight-semibold);
+    color: var(--p-color-text-secondary);
+    border-bottom: 1px solid var(--p-color-border);
+    font-size: var(--p-font-size-300);
+    white-space: nowrap;
+}
+
+.Polaris-DataTable td {
+    padding: var(--p-space-200) var(--p-space-300);
+    border-bottom: 1px solid var(--p-color-border-secondary);
+    color: var(--p-color-text);
+    vertical-align: top;
+}
+
+.Polaris-DataTable tbody tr:hover {
+    background: var(--p-color-bg-surface-hover);
+}
+
+.Polaris-DataTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* ============================================================
+   Polaris ProgressBar
+   ============================================================ */
+
+.Polaris-ProgressBar {
+    height: 8px;
+    background: var(--p-color-bg-fill-secondary);
+    border-radius: var(--p-border-radius-full);
+    overflow: hidden;
+}
+
+.Polaris-ProgressBar__Fill {
+    height: 100%;
+    border-radius: var(--p-border-radius-full);
+    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.Polaris-ProgressBar__Fill--success {
+    background: var(--score-success);
+}
+
+.Polaris-ProgressBar__Fill--warning {
+    background: var(--score-warning);
+}
+
+.Polaris-ProgressBar__Fill--critical {
+    background: var(--score-critical);
+}
+
+.Polaris-ProgressBar__Fill--emphasis {
+    background: var(--p-color-bg-fill-emphasis);
+}
+
+
+/* ============================================================
+   Polaris Checkbox
+   ============================================================ */
+
+.Polaris-Checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--p-space-200);
+    cursor: pointer;
+    font-size: var(--p-font-size-325);
+    color: var(--p-color-text);
+}
+
+.Polaris-Checkbox input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--p-color-border);
+    border-radius: var(--p-border-radius-100);
+    background: var(--p-color-bg-surface);
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.Polaris-Checkbox input[type="checkbox"]:checked {
+    background: var(--p-color-bg-fill-emphasis);
+    border-color: var(--p-color-bg-fill-emphasis);
+}
+
+.Polaris-Checkbox input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    width: 5px;
+    height: 9px;
+    border: 2px solid white;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+}
+
+.Polaris-Checkbox input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--p-color-border-interactive-focus);
+    outline-offset: 2px;
+}
+
+
+/* ============================================================
+   Score Gauge (ring)
+   ============================================================ */
 
 .score-gauge {
     position: relative;
-    width: 180px;
-    height: 180px;
+    width: 160px;
+    height: 160px;
 }
 
 .score-gauge svg {
@@ -22,11 +730,11 @@ body {
 }
 
 .score-gauge .bg-ring {
-    stroke: #1e293b;
+    stroke: var(--p-color-bg-fill-secondary);
 }
 
 .score-gauge .fg-ring {
-    transition: stroke-dashoffset 1s ease, stroke 0.5s ease;
+    transition: stroke-dashoffset 1s cubic-bezier(0.25, 0.46, 0.45, 0.94), stroke 0.5s ease;
 }
 
 .score-gauge .score-text {
@@ -36,72 +744,80 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
-    font-weight: 700;
+}
+
+.score-gauge .score-value {
+    font-size: var(--p-font-size-1000);
+    font-weight: var(--p-font-weight-bold);
+    line-height: 1;
+    letter-spacing: var(--p-font-letter-spacing-densest);
 }
 
 .score-gauge .score-label {
-    font-size: 0.75rem;
+    font-size: var(--p-font-size-300);
+    font-weight: var(--p-font-weight-medium);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #94a3b8;
+    letter-spacing: 0.08em;
+    color: var(--p-color-text-secondary);
+    margin-top: var(--p-space-050);
 }
 
-.category-card {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    transition: border-color 0.2s;
-}
 
-.category-card:hover {
-    border-color: #475569;
-}
-
-.score-bar-bg {
-    background: #334155;
-    border-radius: 9999px;
-    height: 8px;
-    overflow: hidden;
-}
-
-.score-bar-fill {
-    height: 100%;
-    border-radius: 9999px;
-    transition: width 0.8s ease;
-}
-
-.issue-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.5rem 0;
-    font-size: 0.875rem;
-    border-bottom: 1px solid #1e293b;
-}
-
-.issue-item:last-child {
-    border-bottom: none;
-}
+/* ============================================================
+   Severity icons (issue list items)
+   ============================================================ */
 
 .severity-icon {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: var(--p-border-radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: var(--p-font-weight-bold);
     margin-top: 1px;
 }
 
-.severity-error { background: #ef4444; color: white; }
-.severity-warning { background: #f59e0b; color: #1e293b; }
-.severity-info { background: #3b82f6; color: white; }
-.severity-pass { background: #22c55e; color: white; }
+.severity-error {
+    background: var(--p-color-bg-fill-critical);
+    color: var(--p-color-text-critical);
+}
+
+.severity-warning {
+    background: var(--p-color-bg-fill-warning);
+    color: var(--p-color-text-warning);
+}
+
+.severity-info {
+    background: var(--p-color-bg-fill-info);
+    color: var(--p-color-text-info);
+}
+
+.severity-pass {
+    background: var(--p-color-bg-fill-success);
+    color: #0a5236;
+}
+
+
+/* ============================================================
+   Issue list (collapsible)
+   ============================================================ */
+
+.issue-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-space-200);
+    padding: var(--p-space-200) 0;
+    font-size: var(--p-font-size-325);
+    color: var(--p-color-text);
+    border-bottom: 1px solid var(--p-color-border-secondary);
+}
+
+.issue-item:last-child {
+    border-bottom: none;
+}
 
 .issues-list {
     max-height: 0;
@@ -111,26 +827,193 @@ body {
 
 .issues-list.open {
     max-height: 600px;
+    overflow-y: auto;
 }
 
-.spinner {
-    border: 4px solid #334155;
-    border-top-color: #3b82f6;
+
+/* ============================================================
+   Category card (clickable, with score bar)
+   ============================================================ */
+
+.category-card {
+    background: var(--p-color-bg-surface);
+    border: 1px solid var(--p-color-border-secondary);
+    border-radius: var(--p-border-radius-300);
+    box-shadow: var(--p-shadow-200);
+    overflow: hidden;
+    transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.category-card:hover {
+    border-color: var(--p-color-border-hover);
+    box-shadow: var(--p-shadow-300);
+}
+
+.category-card__button {
+    width: 100%;
+    text-align: left;
+    padding: var(--p-space-400);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--p-font-family-sans);
+    color: var(--p-color-text);
+    outline: none;
+}
+
+.category-card__button:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--p-color-border-interactive-focus);
+    border-radius: var(--p-border-radius-300);
+}
+
+
+/* ============================================================
+   KPI metric card
+   ============================================================ */
+
+.kpi-card {
+    background: var(--p-color-bg-surface);
+    border: 1px solid var(--p-color-border-secondary);
+    border-radius: var(--p-border-radius-300);
+    box-shadow: var(--p-shadow-200);
+    padding: var(--p-space-400);
+    text-align: center;
+}
+
+.kpi-card__label {
+    font-size: var(--p-font-size-300);
+    font-weight: var(--p-font-weight-medium);
+    color: var(--p-color-text-secondary);
+    margin-bottom: var(--p-space-100);
+}
+
+.kpi-card__value {
+    font-size: var(--p-font-size-600);
+    font-weight: var(--p-font-weight-bold);
+    color: var(--p-color-text);
+    line-height: var(--p-font-line-height-700);
+    letter-spacing: var(--p-font-letter-spacing-denser);
+}
+
+.kpi-card__source {
+    font-size: var(--p-font-size-275);
+    color: var(--p-color-text-disabled);
+    margin-top: var(--p-space-100);
+}
+
+
+/* ============================================================
+   Bar chart (simple horizontal bars)
+   ============================================================ */
+
+.bar-chart__row {
+    margin-bottom: var(--p-space-200);
+}
+
+.bar-chart__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--p-space-050);
+}
+
+.bar-chart__label {
+    font-size: var(--p-font-size-300);
+    color: var(--p-color-text);
+    font-weight: var(--p-font-weight-medium);
+    text-transform: capitalize;
+}
+
+.bar-chart__value {
+    font-size: var(--p-font-size-300);
+    color: var(--p-color-text-secondary);
+    font-weight: var(--p-font-weight-regular);
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* ============================================================
+   Spinner
+   ============================================================ */
+
+.Polaris-Spinner {
+    border: 3px solid var(--p-color-border);
+    border-top-color: var(--p-color-bg-fill-brand);
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 0.8s linear infinite;
+    width: 36px;
+    height: 36px;
+    animation: polaris-spin 0.7s linear infinite;
 }
 
-@keyframes spin {
+.Polaris-Spinner--large {
+    width: 44px;
+    height: 44px;
+    border-width: 4px;
+}
+
+@keyframes polaris-spin {
     to { transform: rotate(360deg); }
 }
 
+
+/* ============================================================
+   Fade-in animation
+   ============================================================ */
+
 .fade-in {
-    animation: fadeIn 0.5s ease forwards;
+    animation: polaris-fadeIn 0.35s ease forwards;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+@keyframes polaris-fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* ============================================================
+   Utility: grid layout
+   ============================================================ */
+
+.grid-1 { display: grid; gap: var(--p-space-400); grid-template-columns: 1fr; }
+.grid-2 { display: grid; gap: var(--p-space-400); grid-template-columns: repeat(2, 1fr); }
+.grid-3 { display: grid; gap: var(--p-space-400); grid-template-columns: repeat(3, 1fr); }
+.grid-5 { display: grid; gap: var(--p-space-400); grid-template-columns: repeat(5, 1fr); }
+
+@media (max-width: 1024px) {
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-5 { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .grid-5 { grid-template-columns: repeat(2, 1fr); }
+}
+
+.flex-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.text-center { text-align: center; }
+.hidden { display: none !important; }
+.overflow-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.break-all { word-break: break-all; }
+.mb-0 { margin-bottom: 0; }
+.mb-100 { margin-bottom: var(--p-space-100); }
+.mb-200 { margin-bottom: var(--p-space-200); }
+.mb-300 { margin-bottom: var(--p-space-300); }
+.mb-400 { margin-bottom: var(--p-space-400); }
+.mb-500 { margin-bottom: var(--p-space-500); }
+.mb-600 { margin-bottom: var(--p-space-600); }
+.mb-800 { margin-bottom: var(--p-space-800); }
+.mt-200 { margin-top: var(--p-space-200); }
+.mt-300 { margin-top: var(--p-space-300); }
+.mt-400 { margin-top: var(--p-space-400); }
+.mt-600 { margin-top: var(--p-space-600); }
+.gap-200 { gap: var(--p-space-200); }
+.gap-300 { gap: var(--p-space-300); }
+.gap-400 { gap: var(--p-space-400); }
+.p-400 { padding: var(--p-space-400); }
+.p-500 { padding: var(--p-space-500); }
+.px-500 { padding-left: var(--p-space-500); padding-right: var(--p-space-500); }

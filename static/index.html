@@ -4,121 +4,216 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SEO Auditor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;650;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    <div class="max-w-6xl mx-auto px-4 py-8">
-        <!-- Header -->
-        <header class="text-center mb-10">
-            <h1 class="text-3xl font-bold mb-2">SEO Auditor</h1>
-            <p class="text-slate-400">Analyze any URL across 14 SEO categories + site crawl</p>
-        </header>
 
-        <!-- Input -->
-        <form id="audit-form" class="max-w-2xl mx-auto mb-6">
-            <div class="flex gap-3">
-                <input
-                    id="url-input"
-                    type="url"
-                    placeholder="https://example.com"
-                    required
-                    class="flex-1 px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                >
-                <button
-                    type="submit"
-                    id="audit-btn"
-                    class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    Audit
-                </button>
+    <!-- TopBar -->
+    <nav class="Polaris-TopBar">
+        <div class="Polaris-TopBar__Logo">
+            <div class="Polaris-TopBar__LogoIcon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
             </div>
-            <p id="error-msg" class="text-red-400 text-sm mt-2 hidden"></p>
-        </form>
+            SEO Auditor
+        </div>
+    </nav>
 
-        <!-- Crawl Section -->
-        <details class="max-w-2xl mx-auto mb-10">
-            <summary class="cursor-pointer text-slate-400 hover:text-slate-200 text-sm font-medium mb-2">
-                Site Crawl (multi-page analysis)
-            </summary>
-            <form id="crawl-form" class="mt-3">
-                <div class="flex gap-3">
-                    <input
-                        id="crawl-url-input"
-                        type="url"
-                        placeholder="https://example.com"
-                        required
-                        class="flex-1 px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                    >
-                    <input
-                        id="crawl-max-pages"
-                        type="number"
-                        min="1"
-                        max="50"
-                        value="10"
-                        class="w-20 px-3 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white text-center focus:outline-none focus:border-purple-500"
-                        title="Max pages to crawl"
-                    >
-                    <button
-                        type="submit"
-                        id="crawl-btn"
-                        class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Crawl
-                    </button>
-                </div>
-                <p class="text-slate-500 text-xs mt-1">Max pages (1-50). Crawl follows internal links via BFS.</p>
-                <p id="crawl-error-msg" class="text-red-400 text-sm mt-2 hidden"></p>
-            </form>
-        </details>
+    <div class="Polaris-Page">
 
-        <!-- Crawl Loading -->
-        <div id="crawl-loading" class="hidden flex flex-col items-center gap-3 mb-10">
-            <div class="spinner"></div>
-            <p class="text-slate-400">Crawling site...</p>
+        <!-- Page header -->
+        <div class="text-center mb-600">
+            <h1 class="Polaris-Text--headingXl mb-200">SEO Auditor</h1>
+            <p class="Polaris-Text--bodyMd Polaris-Text--subdued">Analyze any URL across 14 SEO categories with optional market intelligence</p>
         </div>
 
-        <!-- Crawl Results -->
-        <div id="crawl-results" class="hidden fade-in mb-10">
+        <!-- Audit form -->
+        <div style="max-width:640px;margin:0 auto" class="mb-400">
+            <form id="audit-form">
+                <div style="display:flex;gap:var(--p-space-200)">
+                    <div class="Polaris-TextField" style="flex:1">
+                        <input
+                            id="url-input"
+                            type="url"
+                            placeholder="https://example.com"
+                            required
+                            class="Polaris-TextField__Input Polaris-TextField__Input--lg"
+                        >
+                    </div>
+                    <button type="submit" id="audit-btn" class="Polaris-Button Polaris-Button--primary Polaris-Button--sizeLg">
+                        Audit
+                    </button>
+                </div>
+                <div class="mt-300">
+                    <label class="Polaris-Checkbox">
+                        <input type="checkbox" id="include-external">
+                        <span>Include Market Intelligence</span>
+                    </label>
+                </div>
+                <p id="error-msg" class="hidden mt-200" style="color:var(--p-color-text-critical);font-size:var(--p-font-size-325)"></p>
+            </form>
+        </div>
+
+        <!-- Crawl section -->
+        <div style="max-width:640px;margin:0 auto" class="mb-800">
+            <details>
+                <summary class="Polaris-Text--bodySm Polaris-Text--subdued" style="cursor:pointer;font-weight:var(--p-font-weight-medium)">
+                    Site Crawl (multi-page analysis)
+                </summary>
+                <form id="crawl-form" class="mt-300">
+                    <div style="display:flex;gap:var(--p-space-200)">
+                        <div class="Polaris-TextField" style="flex:1">
+                            <input
+                                id="crawl-url-input"
+                                type="url"
+                                placeholder="https://example.com"
+                                required
+                                class="Polaris-TextField__Input"
+                            >
+                        </div>
+                        <div class="Polaris-TextField" style="width:72px">
+                            <input
+                                id="crawl-max-pages"
+                                type="number"
+                                min="1"
+                                max="50"
+                                value="10"
+                                class="Polaris-TextField__Input"
+                                title="Max pages to crawl"
+                                style="text-align:center"
+                            >
+                        </div>
+                        <button type="submit" id="crawl-btn" class="Polaris-Button Polaris-Button--default">
+                            Crawl
+                        </button>
+                    </div>
+                    <p class="Polaris-Text--bodySm Polaris-Text--subdued mt-200">Max pages (1-50). Crawl follows internal links via BFS.</p>
+                    <p id="crawl-error-msg" class="hidden mt-200" style="color:var(--p-color-text-critical);font-size:var(--p-font-size-325)"></p>
+                </form>
+            </details>
+        </div>
+
+        <!-- Crawl loading -->
+        <div id="crawl-loading" class="hidden flex-center gap-300 mb-600">
+            <div class="Polaris-Spinner Polaris-Spinner--large"></div>
+            <p class="Polaris-Text--bodyMd Polaris-Text--subdued">Crawling site...</p>
+        </div>
+
+        <!-- Crawl results -->
+        <div id="crawl-results" class="hidden fade-in mb-600">
             <div id="crawl-results-content"></div>
         </div>
 
-        <!-- Loading -->
-        <div id="loading" class="hidden flex flex-col items-center gap-3 mb-10">
-            <div class="spinner"></div>
-            <p class="text-slate-400">Analyzing page...</p>
+        <!-- Audit loading -->
+        <div id="loading" class="hidden flex-center gap-300 mb-600">
+            <div class="Polaris-Spinner Polaris-Spinner--large"></div>
+            <p class="Polaris-Text--bodyMd Polaris-Text--subdued">Analyzing page...</p>
         </div>
 
-        <!-- Results -->
+        <!-- Audit results -->
         <div id="results" class="hidden fade-in">
-            <!-- Overall Score -->
-            <div class="flex flex-col items-center mb-10">
-                <div class="score-gauge">
-                    <svg width="180" height="180" viewBox="0 0 180 180">
-                        <circle class="bg-ring" cx="90" cy="90" r="78" fill="none" stroke-width="12"/>
-                        <circle id="score-ring" class="fg-ring" cx="90" cy="90" r="78" fill="none" stroke-width="12"
-                            stroke-dasharray="490" stroke-dashoffset="490" stroke-linecap="round"/>
-                    </svg>
-                    <div class="score-text">
-                        <span id="overall-score">0</span>
-                        <span class="score-label">Overall</span>
-                    </div>
-                </div>
-                <p id="audited-url" class="text-slate-400 text-sm mt-3"></p>
-                <button
-                    id="download-pdf-btn"
-                    class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Download PDF Report
-                </button>
+
+            <!-- Tabs -->
+            <div class="Polaris-Tabs mb-600" id="result-tabs">
+                <button class="Polaris-Tabs__Tab Polaris-Tabs__Tab--selected" data-tab="seo-tab" onclick="switchTab(this,'seo-tab')">SEO Audit</button>
+                <button class="Polaris-Tabs__Tab" data-tab="intel-tab" id="intel-tab-btn" onclick="switchTab(this,'intel-tab')">Market Intelligence</button>
             </div>
 
-            <!-- Category Grid -->
-            <div id="categories-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- SEO Audit Tab -->
+            <div id="seo-tab">
+                <!-- Overall Score -->
+                <div class="flex-center mb-600">
+                    <div class="score-gauge">
+                        <svg width="160" height="160" viewBox="0 0 160 160">
+                            <circle class="bg-ring" cx="80" cy="80" r="68" fill="none" stroke-width="10"/>
+                            <circle id="score-ring" class="fg-ring" cx="80" cy="80" r="68" fill="none" stroke-width="10"
+                                stroke-dasharray="427" stroke-dashoffset="427" stroke-linecap="round"/>
+                        </svg>
+                        <div class="score-text">
+                            <span id="overall-score" class="score-value">0</span>
+                            <span class="score-label">Overall</span>
+                        </div>
+                    </div>
+                    <p id="audited-url" class="Polaris-Text--bodySm Polaris-Text--subdued mt-300"></p>
+                    <button id="download-pdf-btn" class="Polaris-Button Polaris-Button--default mt-400">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download PDF Report
+                    </button>
+                </div>
+
+                <!-- Category Grid -->
+                <div id="categories-grid" class="grid-3"></div>
             </div>
+
+            <!-- Market Intelligence Tab -->
+            <div id="intel-tab" class="hidden">
+                <div id="intel-section">
+                    <div class="text-center mb-600">
+                        <h2 class="Polaris-Text--headingLg mb-200">Market &amp; Competitive Intelligence</h2>
+                        <p class="Polaris-Text--bodySm Polaris-Text--subdued">Domain-level insights from Similarweb and SEMrush APIs</p>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div id="intel-kpi-cards" class="grid-5 mb-600"></div>
+
+                    <!-- Charts row -->
+                    <div class="grid-3 mb-600">
+                        <div class="Polaris-Card">
+                            <div class="Polaris-Card__Header">
+                                <h3 class="Polaris-Text--headingSm">Traffic Channels</h3>
+                            </div>
+                            <div class="Polaris-Card__Section" id="chart-channels"></div>
+                        </div>
+                        <div class="Polaris-Card">
+                            <div class="Polaris-Card__Header">
+                                <h3 class="Polaris-Text--headingSm">Top Countries</h3>
+                            </div>
+                            <div class="Polaris-Card__Section" id="chart-countries"></div>
+                        </div>
+                        <div class="Polaris-Card">
+                            <div class="Polaris-Card__Header">
+                                <h3 class="Polaris-Text--headingSm">Keyword Positions</h3>
+                            </div>
+                            <div class="Polaris-Card__Section" id="chart-keywords"></div>
+                        </div>
+                    </div>
+
+                    <!-- Detail tables -->
+                    <div class="grid-2 mb-600">
+                        <div id="intel-keywords-table" class="Polaris-Card hidden">
+                            <div class="Polaris-Card__Header">
+                                <h3 class="Polaris-Text--headingSm">Top Organic Keywords</h3>
+                            </div>
+                            <div class="Polaris-Card__Section p-0" style="padding:0">
+                                <div class="overflow-x" id="keywords-table-body"></div>
+                            </div>
+                        </div>
+                        <div id="intel-backlinks-table" class="Polaris-Card hidden">
+                            <div class="Polaris-Card__Header">
+                                <h3 class="Polaris-Text--headingSm">Top Backlinks</h3>
+                            </div>
+                            <div class="Polaris-Card__Section p-0" style="padding:0">
+                                <div class="overflow-x" id="backlinks-table-body"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="max-width:600px">
+                        <div id="intel-competitors-table" class="Polaris-Card hidden mb-600">
+                            <div class="Polaris-Card__Header">
+                                <h3 class="Polaris-Text--headingSm">Similar / Competitor Sites</h3>
+                            </div>
+                            <div class="Polaris-Card__Section" id="competitors-table-body"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 

@@ -13,3 +13,5 @@ build/
 *.swp
 *.swo
 .DS_Store
+.pytest_cache/
+.netlify/

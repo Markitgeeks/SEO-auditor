@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -9,10 +10,12 @@ from app.models import (
     CrawlRequest, CrawlResponse, CrawlPageSummary,
     CrawlBrokenLink, CrawlDuplicate,
 )
+from app.external_models import ExternalInsights
 from app.report import generate_pdf
 from app.fetcher import fetch_page
 from app.scoring import compute_overall_score
 from app.crawler import crawl_site
+from app.utils import normalize_domain, check_ssrf
 from app.analyzers import (
     analyze_meta_tags,
     analyze_headings,
@@ -30,15 +33,22 @@ from app.analyzers import (
     analyze_accessibility,
     analyze_crawl,
 )
+from app.analyzers.traffic_intel import analyze_traffic_intel
+from app.analyzers.search_intel import analyze_search_intel
+from app.config import EXTERNAL_MODULE_TIMEOUT
+
+import os
 
 app = FastAPI(title="SEO Auditor", version="1.0.0")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Static file serving — only when running locally (not on Netlify serverless)
+_static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+if os.path.isdir(_static_dir):
+    app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
-
-@app.get("/")
-async def serve_dashboard():
-    return FileResponse("static/index.html")
+    @app.get("/")
+    async def serve_dashboard():
+        return FileResponse(os.path.join(_static_dir, "index.html"))
 
 
 def _run_analyzer(fn, page, name: str) -> CategoryResult:
@@ -88,7 +98,49 @@ async def run_audit(req: AuditRequest):
 
     overall = compute_overall_score(categories)
 
-    return AuditResponse(url=url, overall_score=overall, categories=categories)
+    # --- External intelligence (opt-in) ---
+    external_insights = None
+    if req.include_external:
+        external_insights = _run_external_intel(url, req.external_modules)
+
+    return AuditResponse(
+        url=url,
+        overall_score=overall,
+        categories=categories,
+        external_insights=external_insights,
+    )
+
+
+def _run_external_intel(url: str, modules: Optional[list] = None) -> ExternalInsights:
+    """Run external intelligence modules in parallel with independent timeouts."""
+    allowed = {"similarweb", "semrush"}
+    requested = set(modules) & allowed if modules else allowed
+
+    domain = normalize_domain(url)
+    check_ssrf(domain)
+
+    sw_result = None
+    sr_result = None
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = {}
+        if "similarweb" in requested:
+            futures[executor.submit(analyze_traffic_intel, domain)] = "similarweb"
+        if "semrush" in requested:
+            futures[executor.submit(analyze_search_intel, domain)] = "semrush"
+
+        for future in as_completed(futures, timeout=EXTERNAL_MODULE_TIMEOUT):
+            name = futures[future]
+            try:
+                result = future.result()
+                if name == "similarweb":
+                    sw_result = result
+                else:
+                    sr_result = result
+            except Exception:
+                pass  # Module failures are non-fatal
+
+    return ExternalInsights(similarweb=sw_result, semrush=sr_result)
 
 
 @app.post("/api/crawl", response_model=CrawlResponse)
