@@ -2,6 +2,13 @@
    SEO Auditor — Shopify Polaris-styled Dashboard
    ============================================================ */
 
+// --- API base URL ---
+// When hosted on Netlify, API calls go to the Render backend.
+// When running locally, calls go to the same origin.
+const API_BASE = window.location.hostname.includes('netlify.app')
+    ? 'https://seo-auditor-api.onrender.com'
+    : '';
+
 // --- DOM refs ---
 const form = document.getElementById('audit-form');
 const urlInput = document.getElementById('url-input');
@@ -450,7 +457,7 @@ form.addEventListener('submit', async (e) => {
             body.external_modules = ['similarweb', 'semrush'];
         }
 
-        const resp = await fetch('/api/audit', {
+        const resp = await fetch(API_BASE + '/api/audit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -505,7 +512,7 @@ crawlForm.addEventListener('submit', async (e) => {
     crawlBtn.disabled = true;
 
     try {
-        const resp = await fetch('/api/crawl', {
+        const resp = await fetch(API_BASE + '/api/crawl', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url, max_pages: maxPages }),
@@ -538,7 +545,7 @@ downloadPdfBtn.addEventListener('click', async () => {
     downloadPdfBtn.innerHTML = '<div class="Polaris-Spinner" style="width:20px;height:20px;border-width:2px"></div> Generating...';
 
     try {
-        const resp = await fetch('/api/report/pdf', {
+        const resp = await fetch(API_BASE + '/api/report/pdf', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(window._lastAuditData),

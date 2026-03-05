@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
@@ -40,6 +41,19 @@ from app.config import EXTERNAL_MODULE_TIMEOUT
 import os
 
 app = FastAPI(title="SEO Auditor", version="1.0.0")
+
+# CORS — allow Netlify frontend to call this API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://deft-pasca-e9b0ab.netlify.app",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Static file serving — only when running locally (not on Netlify serverless)
 _static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
