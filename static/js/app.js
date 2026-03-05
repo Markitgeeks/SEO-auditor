@@ -12,6 +12,7 @@ const $form = document.getElementById('audit-form');
 const $urlInput = document.getElementById('url-input');
 const $auditBtn = document.getElementById('audit-btn');
 const $errorMsg = document.getElementById('error-msg');
+const $appLayout = document.querySelector('.app-layout');
 const $sidebar = document.getElementById('app-sidebar');
 const $sidebarContent = document.getElementById('sidebar-content');
 const $sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -50,10 +51,14 @@ Store.subscribe((changed, state) => {
             $welcomeState.classList.add('hidden');
             $mainContent.classList.add('hidden');
             $loadingState.classList.remove('hidden');
+            $appLayout.classList.add('has-results');
             $sidebarContent.innerHTML = renderSidebarSkeleton();
             $mainSkeleton.innerHTML = renderMainSkeleton();
         } else {
             $loadingState.classList.add('hidden');
+            if (!state.auditData) {
+                $appLayout.classList.remove('has-results');
+            }
         }
     }
 
@@ -73,9 +78,10 @@ Store.subscribe((changed, state) => {
         $sidebarOverlay.classList.toggle('open', state.sidebarOpen);
     }
 
-    // PDF button visibility
+    // PDF button + layout toggle
     if (changed.includes('auditData')) {
         $downloadPdfBtn.classList.toggle('hidden', !state.auditData);
+        $appLayout.classList.toggle('has-results', !!state.auditData);
     }
 });
 

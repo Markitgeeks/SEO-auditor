@@ -182,19 +182,22 @@ body {
 .Polaris-TopBar {
     background: #1a1a1a;
     color: #ffffff;
-    height: 56px;
+    min-height: 56px;
     display: flex;
     align-items: center;
-    padding: 0 var(--p-space-400);
+    padding: var(--p-space-200) var(--p-space-400);
     box-shadow: var(--p-shadow-200);
     position: sticky;
     top: 0;
     z-index: 100;
+    flex-wrap: wrap;
+    gap: var(--p-space-200);
 }
 
 @media (min-width: 768px) {
     .Polaris-TopBar {
-        padding: 0 var(--p-space-600);
+        padding: var(--p-space-200) var(--p-space-600);
+        flex-wrap: nowrap;
     }
 }
 
@@ -1026,8 +1029,12 @@ body {
 
 .app-layout {
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 1fr;
     min-height: calc(100vh - 56px);
+}
+
+.app-layout.has-results {
+    grid-template-columns: 260px 1fr;
 }
 
 .app-sidebar {
@@ -1039,6 +1046,11 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 50;
+    display: none;
+}
+
+.app-layout.has-results .app-sidebar {
+    display: block;
 }
 
 .app-main {
@@ -1158,19 +1170,25 @@ body {
 
 .topbar-form {
     flex: 1;
-    margin: 0 var(--p-space-300);
+    min-width: 0;
 }
 
 .topbar-form__row {
     display: flex;
     align-items: center;
     gap: var(--p-space-200);
+    flex-wrap: wrap;
+}
+
+.topbar-form__row .Polaris-TextField {
+    min-width: 200px;
 }
 
 .topbar-form__options {
     display: flex;
     align-items: center;
-    gap: var(--p-space-200);
+    gap: var(--p-space-300);
+    flex-shrink: 0;
 }
 
 .topbar-form .Polaris-Checkbox {
@@ -1180,6 +1198,22 @@ body {
 
 .topbar-form .Polaris-Checkbox input[type="checkbox"] {
     border-color: rgba(255,255,255,0.4);
+}
+
+.topbar-form .Polaris-TextField__Input {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
+    box-shadow: none;
+}
+
+.topbar-form .Polaris-TextField__Input::placeholder {
+    color: rgba(255,255,255,0.4);
+}
+
+.topbar-form .Polaris-TextField__Input:focus {
+    border-color: var(--p-color-border-interactive-focus);
+    background: rgba(255,255,255,0.15);
 }
 
 .topbar-error {
@@ -1502,12 +1536,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 60vh;
+    min-height: calc(100vh - 120px);
 }
 
 .welcome-state__content {
     text-align: center;
     max-width: 480px;
+    padding: var(--p-space-600);
 }
 
 
@@ -1560,11 +1595,13 @@ body {
    ============================================================ */
 
 @media (max-width: 768px) {
-    .app-layout {
+    .app-layout,
+    .app-layout.has-results {
         grid-template-columns: 1fr;
     }
 
-    .app-sidebar {
+    .app-layout.has-results .app-sidebar {
+        display: block;
         position: fixed;
         left: -280px;
         top: 56px;
@@ -1575,7 +1612,7 @@ body {
         z-index: 200;
     }
 
-    .app-sidebar.open {
+    .app-layout.has-results .app-sidebar.open {
         left: 0;
         box-shadow: var(--p-shadow-400);
     }
