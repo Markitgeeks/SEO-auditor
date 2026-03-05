@@ -148,48 +148,78 @@ def _generate_issues(mobile: Optional[PageSpeedStrategy], desktop: Optional[Page
     return issues
 
 
+def _run_single(url: str, strategy: str) -> tuple[Optional[PageSpeedStrategy], bool, Optional[str]]:
+    """Run PSI for one strategy. Returns (result, cached, error_msg)."""
+    try:
+        raw = psi_provider.run_audit(url, strategy)
+        return _extract_strategy(raw), bool(raw.get("_cached")), None
+    except Exception as exc:
+        return None, False, f"{strategy}: {str(exc)[:120]}"
+
+
 def analyze_pagespeed(url: str) -> PageSpeedResult:
     """Run PageSpeed Insights for mobile + desktop. Returns PageSpeedResult."""
     start = time.perf_counter()
-
-    if not psi_provider.api_key:
-        # PSI API works without a key but with lower rate limits
-        pass
 
     mobile_result: Optional[PageSpeedStrategy] = None
     desktop_result: Optional[PageSpeedStrategy] = None
     cached = False
     errors = []
 
-    try:
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = {
-                executor.submit(psi_provider.run_audit, url, "mobile"): "mobile",
-                executor.submit(psi_provider.run_audit, url, "desktop"): "desktop",
-            }
-            for future in as_completed(futures, timeout=60):
-                strategy_name = futures[future]
-                try:
-                    raw = future.result()
-                    strategy = _extract_strategy(raw)
-                    if raw.get("_cached"):
-                        cached = True
-                    if strategy_name == "mobile":
-                        mobile_result = strategy
-                    else:
-                        desktop_result = strategy
-                except Exception as exc:
-                    errors.append(f"{strategy_name}: {str(exc)[:100]}")
-
-    except Exception as exc:
-        errors.append(str(exc)[:100])
+    # With an API key we can run both in parallel.
+    # Without one, run sequentially to avoid double-429.
+    if psi_provider.api_key:
+        try:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = {
+                    executor.submit(psi_provider.run_audit, url, "mobile"): "mobile",
+                    executor.submit(psi_provider.run_audit, url, "desktop"): "desktop",
+                }
+                for future in as_completed(futures, timeout=120):
+                    strategy_name = futures[future]
+                    try:
+                        raw = future.result()
+                        strategy = _extract_strategy(raw)
+                        if raw.get("_cached"):
+                            cached = True
+                        if strategy_name == "mobile":
+                            mobile_result = strategy
+                        else:
+                            desktop_result = strategy
+                    except Exception as exc:
+                        errors.append(f"{strategy_name}: {str(exc)[:120]}")
+        except Exception as exc:
+            errors.append(str(exc)[:120])
+    else:
+        # Sequential: mobile first, then desktop
+        for strategy_name in ("mobile", "desktop"):
+            result, was_cached, err = _run_single(url, strategy_name)
+            if err:
+                errors.append(err)
+            if was_cached:
+                cached = True
+            if strategy_name == "mobile":
+                mobile_result = result
+            else:
+                desktop_result = result
 
     elapsed = int((time.perf_counter() - start) * 1000)
 
     if mobile_result is None and desktop_result is None:
+        # Build a user-friendly error message
+        raw_err = "; ".join(errors) if errors else "PSI audit failed"
+        if "429" in raw_err or "Too Many Requests" in raw_err:
+            friendly_err = (
+                "Google PageSpeed API rate limit exceeded. "
+                "Try again in a minute, or set PAGESPEED_API_KEY for higher limits."
+            )
+        elif "Timeout" in raw_err:
+            friendly_err = "PageSpeed audit timed out. The target site may be slow to respond."
+        else:
+            friendly_err = raw_err
         return PageSpeedResult(
             status="error",
-            error_message="; ".join(errors) if errors else "PSI audit failed",
+            error_message=friendly_err,
             duration_ms=elapsed,
             data_source="google_pagespeed_insights",
         )
