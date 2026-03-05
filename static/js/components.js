@@ -190,7 +190,20 @@ function renderSidebar(categories, selected, auditData) {
     const overallTone = scoreTone(overallScore);
     const overallColor = scoreColorRaw(overallScore);
 
-    let html = `
+    // Navigation bar: back to brand / home
+    const brand = Store.get('selectedBrand');
+    let html = `<div class="sidebar-back-nav">
+        <a class="sidebar-back-link" data-nav="home">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2"/></svg>
+            Home
+        </a>
+        ${brand ? `<a class="sidebar-back-link" data-nav="brand-detail">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            ${escapeHtml(brand.name)}
+        </a>` : ''}
+    </div>`;
+
+    html += `
         <div class="sidebar-score">
             <div class="sidebar-score__gauge">
                 <svg width="80" height="80" viewBox="0 0 80 80">
@@ -593,7 +606,7 @@ function renderRecommendationsTab(category) {
 // Render: Overview Panel
 // ============================================================
 
-function renderOverviewPanel(auditData) {
+function renderOverviewPanel(auditData, brand) {
     if (!auditData) return '';
 
     const score = auditData.overall_score;
@@ -648,6 +661,19 @@ function renderOverviewPanel(auditData) {
             </div>
         </div>
     </div></div>`;
+
+    // === Brand Summary Card (if brand data available) ===
+    if (brand) {
+        html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Brand Profile</h3></div><div class="Polaris-Card__Section">
+            <div class="kpi-grid">
+                ${brand.industry ? renderIntelKPI('Industry', brand.industry, 'Auto-detected') : ''}
+                ${brand.revenue_range ? renderIntelKPI('Revenue', brand.revenue_range, '') : ''}
+                ${brand.persona ? renderIntelKPI('Persona', brand.persona, '') : ''}
+                ${renderIntelKPI('Audits', String(brand.audit_count || 0), '')}
+            </div>
+            ${brand.description ? `<p class="Polaris-Text--bodyMd mt-200">${escapeHtml(brand.description)}</p>` : ''}
+        </div></div>`;
+    }
 
     // === Category Score Grid ===
     html += `<div class="category-grid mb-400">`;

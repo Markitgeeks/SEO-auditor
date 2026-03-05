@@ -170,7 +170,7 @@ function renderCategoryView(state) {
     const selected = state.selectedCategory;
 
     if (selected === 'overview') {
-        $mainContent.innerHTML = renderOverviewPanel(state.auditData);
+        $mainContent.innerHTML = renderOverviewPanel(state.auditData, state.selectedBrand);
 
         // Add exec summary below overview if available
         if (state.auditData.executive_summary) {
@@ -280,11 +280,11 @@ $sidebarContent.addEventListener('click', (e) => {
     const navItem = e.target.closest('[data-nav]');
     if (navItem) {
         const nav = navItem.dataset.nav;
-        if (nav === 'home') { Store.set({ currentView: 'home', sidebarOpen: false }); loadBrands(); }
-        else if (nav === 'brands') { Store.set({ currentView: 'brands', sidebarOpen: false }); loadBrands(); }
+        if (nav === 'home') { Store.set({ currentView: 'home', auditData: null, sidebarOpen: false }); loadBrands(); }
+        else if (nav === 'brands') { Store.set({ currentView: 'brands', auditData: null, sidebarOpen: false }); loadBrands(); }
         else if (nav === 'quick-audit') { Store.set({ currentView: 'quick-audit', sidebarOpen: false }); }
         else if (['brand-detail', 'brand-audits', 'audit-run', 'reports', 'settings'].includes(nav)) {
-            Store.set({ currentView: nav, sidebarOpen: false });
+            Store.set({ currentView: nav, auditData: null, sidebarOpen: false });
         }
         return;
     }

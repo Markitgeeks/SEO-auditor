@@ -1833,6 +1833,33 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
     align-items: center;
 }
 
+/* Sidebar Back Navigation */
+.sidebar-back-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-space-050);
+    padding: var(--p-space-200) var(--p-space-300);
+    border-bottom: 1px solid var(--p-color-border-secondary);
+    margin-bottom: var(--p-space-200);
+}
+
+.sidebar-back-link {
+    display: flex;
+    align-items: center;
+    gap: var(--p-space-100);
+    font-size: var(--p-font-size-75);
+    color: var(--p-color-text-interactive);
+    cursor: pointer;
+    padding: var(--p-space-050) 0;
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.sidebar-back-link:hover {
+    color: var(--p-color-text-interactive-hover, #004299);
+    text-decoration: underline;
+}
+
 @media (max-width: 600px) {
     .overview-stats {
         grid-template-columns: repeat(2, 1fr);
