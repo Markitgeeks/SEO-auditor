@@ -600,50 +600,111 @@ function renderOverviewPanel(auditData) {
     const color = scoreColorRaw(score);
     const tone = scoreTone(score);
 
-    // Score gauge
-    let html = `
-        <div class="overview-score-section">
-            <div class="score-gauge">
-                <svg width="160" height="160" viewBox="0 0 160 160">
-                    <circle class="bg-ring" cx="80" cy="80" r="68" fill="none" stroke-width="10"/>
-                    <circle class="fg-ring" cx="80" cy="80" r="68" fill="none" stroke-width="10"
-                        stroke-dasharray="427" stroke-dashoffset="${427 - (score / 100) * 427}" stroke-linecap="round"
-                        style="stroke:${color};transform:rotate(-90deg);transform-origin:center"/>
-                </svg>
-                <div class="score-text">
-                    <span class="score-value" style="color:${color}">${score}</span>
-                    <span class="score-label">Overall</span>
+    // Aggregate stats
+    let totalErrors = 0, totalWarnings = 0, totalPasses = 0;
+    auditData.categories.forEach(cat => {
+        const s = cat.summary || {};
+        totalErrors += s.error_count || 0;
+        totalWarnings += s.warning_count || 0;
+        totalPasses += s.pass_count || 0;
+    });
+    const totalCategories = auditData.categories.length;
+
+    // === Hero Card: Score gauge LEFT + summary stats RIGHT ===
+    let html = `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <div class="overview-hero">
+            <div class="overview-hero__gauge">
+                <div class="score-gauge">
+                    <svg width="140" height="140" viewBox="0 0 160 160">
+                        <circle class="bg-ring" cx="80" cy="80" r="68" fill="none" stroke-width="10"/>
+                        <circle class="fg-ring" cx="80" cy="80" r="68" fill="none" stroke-width="10"
+                            stroke-dasharray="427" stroke-dashoffset="${427 - (score / 100) * 427}" stroke-linecap="round"
+                            style="stroke:${color};transform:rotate(-90deg);transform-origin:center"/>
+                    </svg>
+                    <div class="score-text">
+                        <span class="score-value" style="color:${color}">${score}</span>
+                        <span class="score-label">Overall</span>
+                    </div>
+                </div>
+                <p class="Polaris-Text--bodySm Polaris-Text--subdued mt-100">${escapeHtml(auditData.url)}</p>
+            </div>
+            <div class="overview-stats">
+                <div class="overview-stat">
+                    <span class="overview-stat__value" style="color:var(--p-color-text-critical)">${totalErrors}</span>
+                    <span class="overview-stat__label">Errors</span>
+                </div>
+                <div class="overview-stat">
+                    <span class="overview-stat__value" style="color:var(--p-color-text-warning)">${totalWarnings}</span>
+                    <span class="overview-stat__label">Warnings</span>
+                </div>
+                <div class="overview-stat">
+                    <span class="overview-stat__value" style="color:var(--p-color-text-success)">${totalPasses}</span>
+                    <span class="overview-stat__label">Passed</span>
+                </div>
+                <div class="overview-stat">
+                    <span class="overview-stat__value">${totalCategories}</span>
+                    <span class="overview-stat__label">Categories</span>
                 </div>
             </div>
-            <p class="Polaris-Text--bodySm Polaris-Text--subdued mt-200">${escapeHtml(auditData.url)}</p>
-        </div>`;
+        </div>
+    </div></div>`;
 
-    // Top errors across all categories
-    const allErrors = [];
+    // === Category Score Grid ===
+    html += `<div class="category-grid mb-400">`;
+    auditData.categories.forEach(cat => {
+        const label = CATEGORY_LABELS[cat.name] || cat.name;
+        const icon = CATEGORY_ICONS[cat.name] || '';
+        const s = cat.summary || {};
+        const catColor = scoreColorRaw(cat.score);
+        const catTone = scoreTone(cat.score);
+        const errCount = s.error_count || 0;
+        const warnCount = s.warning_count || 0;
+        html += `<div class="category-mini-card" data-category="${escapeHtml(cat.name)}" role="button" tabindex="0">
+            <div class="category-mini-card__header">
+                <span class="category-mini-card__icon">${icon}</span>
+                <span class="Polaris-Badge Polaris-Badge--${catTone}" style="font-weight:var(--p-font-weight-semibold)">${cat.score}</span>
+            </div>
+            <div class="category-mini-card__label">${escapeHtml(label)}</div>
+            <div class="category-mini-card__counts">
+                ${errCount > 0 ? `<span class="Polaris-Text--bodySm" style="color:var(--p-color-text-critical)">${errCount} error${errCount !== 1 ? 's' : ''}</span>` : ''}
+                ${warnCount > 0 ? `<span class="Polaris-Text--bodySm" style="color:var(--p-color-text-warning)">${warnCount} warning${warnCount !== 1 ? 's' : ''}</span>` : ''}
+                ${errCount === 0 && warnCount === 0 ? '<span class="Polaris-Text--bodySm Polaris-Text--success">All clear</span>' : ''}
+            </div>
+        </div>`;
+    });
+    html += `</div>`;
+
+    // === Top Issues Card ===
+    const allIssues = [];
     auditData.categories.forEach(cat => {
         (cat.issues || []).forEach(issue => {
-            if (issue.severity === 'error') {
-                allErrors.push({ category: CATEGORY_LABELS[cat.name] || cat.name, ...issue });
+            if (issue.severity === 'error' || issue.severity === 'warning') {
+                allIssues.push({ category: CATEGORY_LABELS[cat.name] || cat.name, categoryKey: cat.name, ...issue });
             }
         });
     });
+    // Sort: errors first, then warnings
+    allIssues.sort((a, b) => (a.severity === 'error' ? 0 : 1) - (b.severity === 'error' ? 0 : 1));
 
-    if (allErrors.length) {
-        html += `<div class="Polaris-Card mt-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm Polaris-Text--critical">Top Errors (${allErrors.length})</h3></div><div class="Polaris-Card__Section">`;
-        allErrors.slice(0, 10).forEach(err => {
-            html += `<div class="issue-item">
-                ${severityIcon('error')}
-                <div>
-                    <span class="Polaris-Text--bodySm" style="font-weight:var(--p-font-weight-medium)">${escapeHtml(err.category)}</span>
-                    <span class="Polaris-Text--bodySm" style="margin-left:var(--p-space-100)">${escapeHtml(err.message)}</span>
+    if (allIssues.length) {
+        html += `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Top Issues (${allIssues.length})</h3></div><div class="Polaris-Card__Section" style="display:flex;flex-direction:column;gap:var(--p-space-200)">`;
+        allIssues.slice(0, 8).forEach(issue => {
+            const borderColor = issue.severity === 'error' ? 'var(--score-critical)' : 'var(--score-warning)';
+            const sevLabel = issue.severity === 'error' ? 'critical' : 'warning';
+            html += `<div class="top-issue-card" style="border-left-color:${borderColor}">
+                <div class="top-issue-card__header">
+                    <span class="Polaris-Badge Polaris-Badge--${sevLabel}">${escapeHtml(issue.severity)}</span>
+                    <span class="Polaris-Badge">${escapeHtml(issue.category)}</span>
                 </div>
+                <p class="Polaris-Text--bodyMd" style="font-weight:var(--p-font-weight-medium);margin:var(--p-space-100) 0 0">${escapeHtml(issue.message)}</p>
+                ${issue.recommendation ? `<p class="Polaris-Text--bodySm Polaris-Text--subdued" style="margin-top:var(--p-space-050)">${escapeHtml(issue.recommendation).substring(0, 150)}${issue.recommendation.length > 150 ? '...' : ''}</p>` : ''}
             </div>`;
         });
         html += '</div></div>';
     }
 
-    // Audit log with durations
-    html += `<div class="Polaris-Card mt-400"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Audit Log</h3></div>
+    // === Audit Log Table ===
+    html += `<div class="Polaris-Card"><div class="Polaris-Card__Header"><h3 class="Polaris-Text--headingSm">Audit Log</h3></div>
         <div class="Polaris-Card__Section" style="padding:0"><div class="overflow-x">
             <table class="Polaris-DataTable">
                 <thead><tr><th>Category</th><th>Score</th><th>Status</th><th>Duration</th><th>Errors</th><th>Warnings</th></tr></thead>
@@ -1147,7 +1208,8 @@ function renderNewBrandForm() {
             <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-name">Brand Name *</label>
                 <input type="text" id="brand-name" class="Polaris-TextField__Input" required placeholder="e.g. Acme Corp" /></div>
             <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-domain">Primary Domain *</label>
-                <input type="text" id="brand-domain" class="Polaris-TextField__Input" required placeholder="e.g. acme.com" /></div>
+                <input type="text" id="brand-domain" class="Polaris-TextField__Input" required placeholder="e.g. acme.com" />
+                <p class="Polaris-Text--bodySm Polaris-Text--subdued mt-100">We'll automatically fetch your site's info and run an initial audit.</p></div>
             <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-industry">Industry</label>
                 <input type="text" id="brand-industry" class="Polaris-TextField__Input" placeholder="e.g. E-commerce" /></div>
             <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-description">Description</label>

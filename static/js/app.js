@@ -414,6 +414,14 @@ function bindNewBrandForm() {
             revenue_range: document.getElementById('brand-revenue').value || undefined,
         };
         if (!body.name || !body.primary_domain) return;
+
+        // Disable submit button while creating
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating & fetching site info...';
+        }
+
         try {
             const resp = await fetch(API_BASE + '/api/brands', {
                 method: 'POST',
@@ -422,9 +430,40 @@ function bindNewBrandForm() {
             });
             if (!resp.ok) throw new Error('Failed to create brand');
             const brand = await resp.json();
+
+            // Navigate to brand detail immediately
             await selectBrand(brand.id);
+
+            // Kick off initial audit in the background
+            const domain = brand.primary_domain;
+            const auditUrl = `https://${domain}`;
+            Store.set({ loading: true });
+
+            try {
+                const auditResp = await fetch(API_BASE + `/api/brands/${brand.id}/audits`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: auditUrl,
+                        save_result: true,
+                        include_exec_summary: true,
+                    }),
+                });
+                if (auditResp.ok) {
+                    const auditData = await auditResp.json();
+                    Store.set({ auditData, activeTab: 'overview', loading: false });
+                } else {
+                    Store.set({ loading: false });
+                }
+            } catch (_auditErr) {
+                Store.set({ loading: false });
+            }
         } catch (err) {
             Store.set({ error: err.message });
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Brand';
+            }
         }
     });
 }

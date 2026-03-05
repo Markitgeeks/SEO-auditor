@@ -448,10 +448,51 @@ async def create_brand(req: BrandCreate, db: Session = Depends(get_db)):
     db.add(brand)
     db.commit()
     db.refresh(brand)
+
+    # Auto-enrich: fetch homepage metadata for fields user didn't provide
+    try:
+        from app.providers.enrichment.auto_fetch import AutoFetchEnrichmentProvider
+
+        provider = AutoFetchEnrichmentProvider()
+        existing_fields = {
+            "description": req.description,
+            "industry": req.industry,
+        }
+        enrichment = provider.enrich(brand.primary_domain, existing_fields)
+
+        if enrichment.status == "ok" and enrichment.fields:
+            for field_name, value in enrichment.fields.items():
+                current = getattr(brand, field_name, None)
+                if not current:
+                    setattr(brand, field_name, value)
+            brand.enrichment_status_json = {
+                "auto_fetch": {
+                    "status": enrichment.status,
+                    "data_source": enrichment.data_source,
+                    "fields": list(enrichment.fields.keys()),
+                    "confidence": enrichment.confidence,
+                }
+            }
+        else:
+            brand.enrichment_status_json = {
+                "auto_fetch": {
+                    "status": enrichment.status,
+                    "error_message": enrichment.error_message,
+                }
+            }
+        brand.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(brand)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Auto-enrich failed for %s: %s", brand.primary_domain, exc)
+
     return BrandResponse(
         id=brand.id, name=brand.name, primary_domain=brand.primary_domain,
         industry=brand.industry, description=brand.description,
         persona=brand.persona, revenue_range=brand.revenue_range,
+        logo_path=brand.logo_path, theme_json=brand.theme_json,
+        enrichment_status_json=brand.enrichment_status_json,
         created_at=brand.created_at.isoformat() if brand.created_at else None,
         updated_at=brand.updated_at.isoformat() if brand.updated_at else None,
     )
