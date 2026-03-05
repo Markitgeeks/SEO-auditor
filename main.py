@@ -449,18 +449,15 @@ async def create_brand(req: BrandCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(brand)
 
-    # Auto-enrich: fetch homepage metadata for fields user didn't provide
+    # Auto-enrich: fetch homepage metadata to fill in brand details automatically
     try:
         from app.providers.enrichment.auto_fetch import AutoFetchEnrichmentProvider
 
         provider = AutoFetchEnrichmentProvider()
-        existing_fields = {
-            "description": req.description,
-            "industry": req.industry,
-        }
-        enrichment = provider.enrich(brand.primary_domain, existing_fields)
+        enrichment = provider.enrich(brand.primary_domain)
 
         if enrichment.status == "ok" and enrichment.fields:
+            enrichment_meta = enrichment.fields.pop("_meta", {})
             for field_name, value in enrichment.fields.items():
                 current = getattr(brand, field_name, None)
                 if not current:
@@ -471,6 +468,7 @@ async def create_brand(req: BrandCreate, db: Session = Depends(get_db)):
                     "data_source": enrichment.data_source,
                     "fields": list(enrichment.fields.keys()),
                     "confidence": enrichment.confidence,
+                    "meta": enrichment_meta,
                 }
             }
         else:

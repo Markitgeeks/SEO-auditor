@@ -1204,23 +1204,13 @@ function renderAuditHistoryTable(audits, brandName) {
 function renderNewBrandForm() {
     return `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
         <h2 class="Polaris-Text--headingXl mb-400">Create New Brand</h2>
+        <p class="Polaris-Text--bodySm Polaris-Text--subdued mb-400">Just enter the domain — we'll auto-detect industry, description, and other details from the website.</p>
         <form id="brand-form" class="brand-form">
             <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-name">Brand Name *</label>
                 <input type="text" id="brand-name" class="Polaris-TextField__Input" required placeholder="e.g. Acme Corp" /></div>
             <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-domain">Primary Domain *</label>
-                <input type="text" id="brand-domain" class="Polaris-TextField__Input" required placeholder="e.g. acme.com" />
-                <p class="Polaris-Text--bodySm Polaris-Text--subdued mt-100">We'll automatically fetch your site's info and run an initial audit.</p></div>
-            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-industry">Industry</label>
-                <input type="text" id="brand-industry" class="Polaris-TextField__Input" placeholder="e.g. E-commerce" /></div>
-            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-description">Description</label>
-                <textarea id="brand-description" class="Polaris-TextField__Input" rows="3" placeholder="What does this brand do?"></textarea></div>
-            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-persona">Target Persona</label>
-                <input type="text" id="brand-persona" class="Polaris-TextField__Input" placeholder="e.g. SMB owners, 25-45" /></div>
-            <div class="form-field mb-300"><label class="Polaris-Text--bodyMd" for="brand-revenue">Revenue Range</label>
-                <select id="brand-revenue" class="Polaris-TextField__Input"><option value="">Select...</option>
-                    <option value="<$1M">&lt;$1M</option><option value="$1-5M">$1-5M</option><option value="$5-20M">$5-20M</option>
-                    <option value="$20-100M">$20-100M</option><option value="$100M+">$100M+</option></select></div>
-            <button type="submit" class="Polaris-Button Polaris-Button--primary">Create Brand</button>
+                <input type="text" id="brand-domain" class="Polaris-TextField__Input" required placeholder="e.g. acme.com" /></div>
+            <button type="submit" class="Polaris-Button Polaris-Button--primary">Create Brand & Run Audit</button>
         </form></div></div>`;
 }
 

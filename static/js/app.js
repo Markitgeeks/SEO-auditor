@@ -408,10 +408,6 @@ function bindNewBrandForm() {
         const body = {
             name: document.getElementById('brand-name').value.trim(),
             primary_domain: document.getElementById('brand-domain').value.trim(),
-            industry: document.getElementById('brand-industry').value.trim() || undefined,
-            description: document.getElementById('brand-description').value.trim() || undefined,
-            persona: document.getElementById('brand-persona').value.trim() || undefined,
-            revenue_range: document.getElementById('brand-revenue').value || undefined,
         };
         if (!body.name || !body.primary_domain) return;
 
