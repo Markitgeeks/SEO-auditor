@@ -25,7 +25,7 @@ ERROR_FILL = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="so
 WARNING_FILL = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
 PASS_FILL = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
 
-EXPORT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "exports")
+EXPORT_DIR = os.environ.get("EXPORT_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "exports"))
 
 
 def _apply_header_style(ws, num_cols: int):
