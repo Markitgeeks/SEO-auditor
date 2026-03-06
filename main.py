@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 import uuid
@@ -61,6 +62,9 @@ from app.config import (
     UPLOAD_MAX_SIZE_MB,
     UPLOAD_ALLOWED_TYPES,
 )
+from app.services.job_manager import create_job, get_job as get_job_by_id, JobStatus
+from app.analyzers.sitemap_export import run_sitemap_export, SitemapExportConfig
+from app.analyzers.tag_discovery import run_tag_scan, TagScanConfig
 
 app = FastAPI(title="SEO Auditor", version="2.0.0")
 
@@ -720,4 +724,140 @@ async def keyword_suggest(
         language_code=req.language_code,
         geo_target_ids=req.geo_target_ids,
         page_size=req.page_size,
+    )
+
+
+# ============================================================
+# Sitemap Export
+# ============================================================
+
+class SitemapExportRequest(_BaseModel):
+    domain: str
+    brand_id: Optional[str] = None
+    max_urls: int = 5000
+    batch_delay_ms: int = 200
+    max_concurrent: int = 5
+    include_word_count: bool = True
+    include_og_tags: bool = True
+    respect_robots: bool = True
+    retry_count: int = 3
+
+
+@app.post("/api/sitemap/export")
+async def start_sitemap_export(req: SitemapExportRequest):
+    domain = req.domain.strip().lower()
+    if not domain:
+        raise HTTPException(status_code=400, detail="Domain is required")
+
+    job = create_job("sitemap_export", brand_id=req.brand_id)
+    config = SitemapExportConfig(
+        max_urls=min(req.max_urls, 10000),
+        batch_delay_ms=req.batch_delay_ms,
+        max_concurrent=min(req.max_concurrent, 10),
+        include_word_count=req.include_word_count,
+        include_og_tags=req.include_og_tags,
+        respect_robots=req.respect_robots,
+        retry_count=min(req.retry_count, 5),
+    )
+    asyncio.create_task(run_sitemap_export(job.id, domain, config))
+    return {"job_id": job.id, "status": "pending", "message": "Sitemap export started"}
+
+
+@app.get("/api/sitemap/export/{job_id}")
+async def get_sitemap_export_status(job_id: str):
+    job = get_job_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {
+        "job_id": job.id,
+        "status": job.status.value,
+        "progress": job.progress,
+        "progress_message": job.progress_message,
+        "total_items": job.total_items,
+        "completed_items": job.completed_items,
+        "failed_items": job.failed_items,
+        "result_data": job.result_data,
+        "error_message": job.error_message,
+        "errors": job.errors[:20],
+    }
+
+
+@app.get("/api/sitemap/export/{job_id}/download")
+async def download_sitemap_export(job_id: str):
+    job = get_job_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status != JobStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail=f"Job is {job.status.value}, not completed")
+    if not job.result_path or not os.path.isfile(job.result_path):
+        raise HTTPException(status_code=404, detail="Export file not found")
+    return FileResponse(
+        job.result_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=os.path.basename(job.result_path),
+    )
+
+
+# ============================================================
+# Tag Discovery
+# ============================================================
+
+class TagScanRequest(_BaseModel):
+    domain: str
+    brand_id: Optional[str] = None
+    page_types: list[str] = ["homepage", "product", "collection", "cart"]
+    redact_mode: bool = False
+    max_pages: int = 6
+
+
+@app.post("/api/tags/scan")
+async def start_tag_scan(req: TagScanRequest):
+    domain = req.domain.strip().lower()
+    if not domain:
+        raise HTTPException(status_code=400, detail="Domain is required")
+
+    job = create_job("tag_scan", brand_id=req.brand_id)
+    config = TagScanConfig(
+        page_types=req.page_types[:6],
+        redact_mode=req.redact_mode,
+        max_pages=min(req.max_pages, 10),
+    )
+    asyncio.create_task(run_tag_scan(job.id, domain, config))
+    return {
+        "job_id": job.id,
+        "status": "pending",
+        "message": f"Tag scan started for {len(config.page_types)} page types",
+    }
+
+
+@app.get("/api/tags/scan/{job_id}")
+async def get_tag_scan_status(job_id: str):
+    job = get_job_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {
+        "job_id": job.id,
+        "status": job.status.value,
+        "progress": job.progress,
+        "progress_message": job.progress_message,
+        "total_items": job.total_items,
+        "completed_items": job.completed_items,
+        "result_data": job.result_data,
+        "error_message": job.error_message,
+    }
+
+
+@app.get("/api/tags/scan/{job_id}/download")
+async def download_tag_scan(job_id: str):
+    job = get_job_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status != JobStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail=f"Job is {job.status.value}, not completed")
+    if not job.result_path or not os.path.isfile(job.result_path):
+        raise HTTPException(status_code=404, detail="Export file not found")
+    return FileResponse(
+        job.result_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=os.path.basename(job.result_path),
     )

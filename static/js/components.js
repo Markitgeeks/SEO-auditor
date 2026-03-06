@@ -1073,6 +1073,15 @@ function renderAppSidebar(state) {
     }
 
     html += '<div class="sidebar-divider"></div>';
+    html += '<div class="sidebar-section-label">Tools</div>';
+    html += `<a class="sidebar-item ${view === 'sitemap-explorer' ? 'selected' : ''}" data-nav="sitemap-explorer">
+        <span class="sidebar-item__icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h14v2H3V3zm0 4h10v2H3V7zm0 4h14v2H3v-2zm0 4h10v2H3v-2z"/></svg></span>
+        <span class="sidebar-item__label">Sitemap Explorer</span>
+    </a>`;
+    html += `<a class="sidebar-item ${view === 'tag-discovery' ? 'selected' : ''}" data-nav="tag-discovery">
+        <span class="sidebar-item__icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1.07A7.002 7.002 0 0117 11a7 7 0 01-14 0 7.002 7.002 0 016-6.93V3a1 1 0 011-1zm0 4a5 5 0 100 10 5 5 0 000-10z"/></svg></span>
+        <span class="sidebar-item__label">Tag Discovery</span>
+    </a>`;
     html += `<a class="sidebar-item ${view === 'quick-audit' ? 'selected' : ''}" data-nav="quick-audit">
         <span class="sidebar-item__icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l8 5v6l-8 5-8-5V7l8-5z"/></svg></span>
         <span class="sidebar-item__label">Quick Audit</span>
@@ -1309,4 +1318,208 @@ function renderBrandAuditForm(brand) {
             <p class="Polaris-Text--bodySm Polaris-Text--subdued mb-300">Results saved to ${escapeHtml(brand.name)}'s history.</p>
             <button type="submit" class="Polaris-Button Polaris-Button--primary">Run & Save Audit</button>
         </form></div></div>`;
+}
+
+
+// ============================================================
+// Sitemap Explorer
+// ============================================================
+
+function renderSitemapExplorer(state) {
+    const job = state.sitemapExportJob;
+    let html = `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <h2 class="Polaris-Text--headingXl mb-200">Sitemap Explorer</h2>
+        <p class="Polaris-Text--bodySm Polaris-Text--subdued mb-400">Extract all URLs from a site's sitemap with full metadata — titles, descriptions, status codes, canonical URLs, and more. Download as XLSX spreadsheet.</p>
+        <form id="sitemap-export-form" class="brand-form">
+            <div class="form-field mb-300">
+                <label for="se-domain">Domain</label>
+                <input type="text" id="se-domain" class="Polaris-TextField__Input" placeholder="example.com" required value="${state.selectedBrand ? escapeHtml(state.selectedBrand.primary_domain) : ''}" />
+            </div>
+            <details class="mb-300">
+                <summary class="Polaris-Text--bodySm" style="cursor:pointer;user-select:none">Advanced Settings</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--p-space-300);margin-top:var(--p-space-300)">
+                    <div class="form-field"><label for="se-max-urls">Max URLs</label><input type="number" id="se-max-urls" class="Polaris-TextField__Input" value="5000" min="1" max="10000" /></div>
+                    <div class="form-field"><label for="se-delay">Batch Delay (ms)</label><input type="number" id="se-delay" class="Polaris-TextField__Input" value="200" min="0" max="5000" /></div>
+                    <div class="form-field"><label for="se-workers">Workers</label><input type="number" id="se-workers" class="Polaris-TextField__Input" value="5" min="1" max="10" /></div>
+                </div>
+                <div style="display:flex;gap:var(--p-space-400);flex-wrap:wrap;margin-top:var(--p-space-300)">
+                    <label class="Polaris-Checkbox"><input type="checkbox" id="se-wordcount" checked /><span class="Polaris-Checkbox__Input"></span> Word count</label>
+                    <label class="Polaris-Checkbox"><input type="checkbox" id="se-ogtags" checked /><span class="Polaris-Checkbox__Input"></span> OG tags</label>
+                    <label class="Polaris-Checkbox"><input type="checkbox" id="se-robots" checked /><span class="Polaris-Checkbox__Input"></span> Respect robots</label>
+                </div>
+            </details>
+            <button type="submit" class="Polaris-Button Polaris-Button--primary">Export Sitemap</button>
+        </form>
+    </div></div>`;
+
+    if (job) {
+        html += renderSitemapJobStatus(job);
+    }
+
+    return html;
+}
+
+function renderSitemapJobStatus(job) {
+    const pct = Math.round((job.progress || 0) * 100);
+    const isRunning = job.status === 'running' || job.status === 'pending';
+    const isComplete = job.status === 'completed';
+    const isFailed = job.status === 'failed';
+
+    let html = `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">`;
+
+    if (isRunning) {
+        html += `<h3 class="Polaris-Text--headingSm mb-200">Exporting sitemap data...</h3>
+            <div class="progress-bar mb-200"><div class="progress-bar__fill" style="width:${pct}%"></div></div>
+            <p class="Polaris-Text--bodySm">${escapeHtml(job.progress_message || 'Starting...')} &mdash; ${pct}%</p>`;
+        if (job.failed_items > 0) {
+            html += `<p class="Polaris-Text--bodySm Polaris-Text--critical">${job.failed_items} error(s)</p>`;
+        }
+    } else if (isComplete) {
+        const s = job.result_data || {};
+        html += `<h3 class="Polaris-Text--headingSm mb-200" style="color:var(--score-success)">Export Complete</h3>
+            <div style="display:flex;gap:var(--p-space-400);flex-wrap:wrap;margin-bottom:var(--p-space-300)">
+                ${renderIntelKPI('Total URLs', s.total_urls || 0)}
+                ${renderIntelKPI('Fetched OK', s.fetched_ok || 0)}
+                ${renderIntelKPI('Failed', s.failed || 0)}
+                ${renderIntelKPI('Missing Title', s.missing_title || 0)}
+                ${renderIntelKPI('Missing Desc', s.missing_description || 0)}
+                ${renderIntelKPI('Avg Words', s.avg_word_count || 0)}
+            </div>
+            <div style="display:flex;gap:var(--p-space-300)">
+                <button class="Polaris-Button Polaris-Button--primary" id="sitemap-download-btn">Download XLSX</button>
+                <button class="Polaris-Button Polaris-Button--default" id="sitemap-rerun-btn">Re-run</button>
+            </div>`;
+    } else if (isFailed) {
+        html += `<h3 class="Polaris-Text--headingSm Polaris-Text--critical mb-200">Export Failed</h3>
+            <p class="Polaris-Text--bodySm">${escapeHtml(job.error_message || 'Unknown error')}</p>
+            <button class="Polaris-Button Polaris-Button--default mt-300" id="sitemap-rerun-btn">Retry</button>`;
+    }
+
+    html += '</div></div>';
+    return html;
+}
+
+
+// ============================================================
+// Tag Discovery
+// ============================================================
+
+function renderTagDiscovery(state) {
+    const job = state.tagScanJob;
+    let html = `<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">
+        <h2 class="Polaris-Text--headingXl mb-200">Tag Discovery</h2>
+        <p class="Polaris-Text--bodySm Polaris-Text--subdued mb-400">Scan multiple page types to discover all tracking pixels, analytics tags, and marketing scripts. Get recommendations for performance and accuracy.</p>
+        <form id="tag-scan-form" class="brand-form">
+            <div class="form-field mb-300">
+                <label for="td-domain">Domain</label>
+                <input type="text" id="td-domain" class="Polaris-TextField__Input" placeholder="example.com" required value="${state.selectedBrand ? escapeHtml(state.selectedBrand.primary_domain) : ''}" />
+            </div>
+            <div class="mb-300">
+                <label class="Polaris-Text--bodySm mb-100" style="display:block;font-weight:500">Page Types to Scan</label>
+                <div style="display:flex;gap:var(--p-space-400);flex-wrap:wrap">
+                    <label class="Polaris-Checkbox"><input type="checkbox" class="td-page-type" value="homepage" checked /><span class="Polaris-Checkbox__Input"></span> Homepage</label>
+                    <label class="Polaris-Checkbox"><input type="checkbox" class="td-page-type" value="product" checked /><span class="Polaris-Checkbox__Input"></span> Product</label>
+                    <label class="Polaris-Checkbox"><input type="checkbox" class="td-page-type" value="collection" checked /><span class="Polaris-Checkbox__Input"></span> Collection</label>
+                    <label class="Polaris-Checkbox"><input type="checkbox" class="td-page-type" value="cart" checked /><span class="Polaris-Checkbox__Input"></span> Cart</label>
+                    <label class="Polaris-Checkbox"><input type="checkbox" class="td-page-type" value="blog" /><span class="Polaris-Checkbox__Input"></span> Blog</label>
+                    <label class="Polaris-Checkbox"><input type="checkbox" class="td-page-type" value="page" /><span class="Polaris-Checkbox__Input"></span> Custom Page</label>
+                </div>
+            </div>
+            <div class="mb-300">
+                <label class="Polaris-Checkbox"><input type="checkbox" id="td-redact" /><span class="Polaris-Checkbox__Input"></span> Redact IDs in export</label>
+            </div>
+            <button type="submit" class="Polaris-Button Polaris-Button--primary">Scan Tags</button>
+        </form>
+    </div></div>`;
+
+    if (job) {
+        html += renderTagJobStatus(job);
+    }
+
+    return html;
+}
+
+function renderTagJobStatus(job) {
+    const pct = Math.round((job.progress || 0) * 100);
+    const isRunning = job.status === 'running' || job.status === 'pending';
+    const isComplete = job.status === 'completed';
+    const isFailed = job.status === 'failed';
+
+    let html = '<div class="Polaris-Card mb-400"><div class="Polaris-Card__Section">';
+
+    if (isRunning) {
+        html += `<h3 class="Polaris-Text--headingSm mb-200">Scanning pages...</h3>
+            <div class="progress-bar mb-200"><div class="progress-bar__fill" style="width:${pct}%"></div></div>
+            <p class="Polaris-Text--bodySm">${escapeHtml(job.progress_message || 'Starting...')}</p>`;
+    } else if (isComplete) {
+        const data = job.result_data || {};
+        const tags = data.tags || [];
+        const recs = data.recommendations || [];
+        const coverage = data.page_coverage || [];
+
+        // Tag cards
+        html += `<h3 class="Polaris-Text--headingSm mb-200" style="color:var(--score-success)">Found ${tags.length} tag(s) across ${data.pages_scanned || 0} pages</h3>`;
+
+        if (tags.length) {
+            html += '<div style="display:flex;gap:var(--p-space-300);flex-wrap:wrap;margin-bottom:var(--p-space-400)">';
+            tags.forEach(t => {
+                const catColor = t.category === 'advertising' ? '#b98900' : t.category === 'analytics' ? '#008060' : t.category === 'tag_manager' ? '#2B579A' : '#6d7175';
+                html += `<div class="Polaris-Card" style="min-width:180px;border-left:3px solid ${catColor}">
+                    <div class="Polaris-Card__Section" style="padding:var(--p-space-300)">
+                        <div class="Polaris-Text--headingSm">${escapeHtml(t.vendor_short)}</div>
+                        <div class="Polaris-Text--bodySm">${escapeHtml(t.tag_id || 'N/A')}</div>
+                        <div class="Polaris-Text--bodySm Polaris-Text--subdued">${t.page_count}/${data.pages_scanned || 0} pages</div>
+                        <div class="Polaris-Text--bodySm Polaris-Text--subdued">${escapeHtml(t.load_method)}</div>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+        }
+
+        // Recommendations
+        if (recs.length) {
+            html += '<h4 class="Polaris-Text--headingSm mb-200">Recommendations</h4>';
+            recs.forEach(r => {
+                const icon = r.priority === 'Critical' ? '!' : r.priority === 'High' ? '!' : 'i';
+                const sev = r.priority === 'Critical' ? 'error' : r.priority === 'High' ? 'warning' : 'info';
+                html += `<div class="issue-row mb-100">
+                    <span class="severity-icon severity-${sev}">${icon}</span>
+                    <div>
+                        <span class="Polaris-Badge Polaris-Badge--${sev === 'error' ? 'critical' : sev}">${escapeHtml(r.priority)}</span>
+                        <span class="Polaris-Text--bodySm" style="margin-left:var(--p-space-200)">${escapeHtml(r.recommendation)}</span>
+                    </div>
+                </div>`;
+            });
+        }
+
+        // Page Coverage table
+        if (coverage.length) {
+            html += '<h4 class="Polaris-Text--headingSm mb-200 mt-400">Page Coverage</h4>';
+            html += '<div class="Polaris-DataTable"><table><thead><tr><th>Page</th><th>Status</th><th>Tags</th><th>GTM</th><th>GA4</th><th>Meta Pixel</th><th>Other</th></tr></thead><tbody>';
+            coverage.forEach(p => {
+                html += `<tr>
+                    <td>${escapeHtml(p.page_type)}</td>
+                    <td><span class="Polaris-Badge Polaris-Badge--${p.status === 'scanned' ? 'success' : 'default'}">${escapeHtml(p.status)}</span></td>
+                    <td>${p.tags_found}</td>
+                    <td>${p.gtm === 'Yes' ? '<span style="color:var(--score-success)">\u2713</span>' : '<span style="color:var(--score-critical)">\u2717</span>'}</td>
+                    <td>${p.ga4 === 'Yes' ? '<span style="color:var(--score-success)">\u2713</span>' : '<span style="color:var(--score-critical)">\u2717</span>'}</td>
+                    <td>${p.meta_pixel === 'Yes' ? '<span style="color:var(--score-success)">\u2713</span>' : '-'}</td>
+                    <td>${escapeHtml(p.other_tags || '-')}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+
+        html += `<div style="display:flex;gap:var(--p-space-300);margin-top:var(--p-space-400)">
+            <button class="Polaris-Button Polaris-Button--primary" id="tag-download-btn">Download XLSX</button>
+            <button class="Polaris-Button Polaris-Button--default" id="tag-rerun-btn">Re-run</button>
+        </div>`;
+    } else if (isFailed) {
+        html += `<h3 class="Polaris-Text--headingSm Polaris-Text--critical mb-200">Scan Failed</h3>
+            <p class="Polaris-Text--bodySm">${escapeHtml(job.error_message || 'Unknown error')}</p>
+            <button class="Polaris-Button Polaris-Button--default mt-300" id="tag-rerun-btn">Retry</button>`;
+    }
+
+    html += '</div></div>';
+    return html;
 }

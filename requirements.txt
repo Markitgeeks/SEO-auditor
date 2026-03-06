@@ -10,3 +10,4 @@ extruct==0.17.0
 sqlalchemy==2.0.36
 python-multipart==0.0.12
 aiofiles==24.1.0
+openpyxl>=3.1.0

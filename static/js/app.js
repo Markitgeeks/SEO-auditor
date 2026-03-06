@@ -37,7 +37,7 @@ Store.subscribe((changed, state) => {
     // Re-render main on most changes
     if (changed.some(k => ['currentView', 'brands', 'selectedBrand', 'selectedBrandId', 'brandAudits',
         'auditData', 'selectedCategory', 'activeTab', 'issueFilter', 'issueSort', 'issuePage', 'issueSearch',
-        'keywordData', 'keywordSort', 'selectedAudit'].includes(k))) {
+        'keywordData', 'keywordSort', 'selectedAudit', 'sitemapExportJob', 'tagScanJob'].includes(k))) {
         renderMainPanel(state);
     }
 
@@ -144,6 +144,16 @@ function renderMainPanel(state) {
         case 'quick-audit':
             $mainContent.innerHTML = renderQuickAuditForm();
             bindQuickAuditForm();
+            break;
+
+        case 'sitemap-explorer':
+            $mainContent.innerHTML = renderSitemapExplorer(state);
+            bindSitemapExplorerEvents();
+            break;
+
+        case 'tag-discovery':
+            $mainContent.innerHTML = renderTagDiscovery(state);
+            bindTagDiscoveryEvents();
             break;
 
         case 'category':
@@ -283,6 +293,8 @@ $sidebarContent.addEventListener('click', (e) => {
         if (nav === 'home') { Store.set({ currentView: 'home', auditData: null, sidebarOpen: false }); loadBrands(); }
         else if (nav === 'brands') { Store.set({ currentView: 'brands', auditData: null, sidebarOpen: false }); loadBrands(); }
         else if (nav === 'quick-audit') { Store.set({ currentView: 'quick-audit', sidebarOpen: false }); }
+        else if (nav === 'sitemap-explorer') { Store.set({ currentView: 'sitemap-explorer', sidebarOpen: false }); }
+        else if (nav === 'tag-discovery') { Store.set({ currentView: 'tag-discovery', sidebarOpen: false }); }
         else if (['brand-detail', 'brand-audits', 'audit-run', 'reports', 'settings'].includes(nav)) {
             Store.set({ currentView: nav, auditData: null, sidebarOpen: false });
         }
@@ -829,6 +841,159 @@ if ($downloadPdfBtn) {
         } catch (err) { alert('PDF error: ' + err.message); }
         finally { $downloadPdfBtn.disabled = false; }
     });
+}
+
+
+// ============================================================
+// Sitemap Explorer
+// ============================================================
+
+let _sitemapPollTimer = null;
+
+function bindSitemapExplorerEvents() {
+    const form = document.getElementById('sitemap-export-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const domain = document.getElementById('se-domain').value.trim();
+            if (!domain) return;
+
+            const body = {
+                domain,
+                max_urls: parseInt(document.getElementById('se-max-urls')?.value) || 5000,
+                batch_delay_ms: parseInt(document.getElementById('se-delay')?.value) || 200,
+                max_concurrent: parseInt(document.getElementById('se-workers')?.value) || 5,
+                include_word_count: document.getElementById('se-wordcount')?.checked !== false,
+                include_og_tags: document.getElementById('se-ogtags')?.checked !== false,
+                respect_robots: document.getElementById('se-robots')?.checked !== false,
+            };
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/sitemap/export`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                if (!resp.ok) throw new Error((await resp.json()).detail || 'Export failed');
+                const data = await resp.json();
+                Store.set({ sitemapExportJob: data });
+                pollSitemapJob(data.job_id);
+            } catch (err) {
+                Store.set({ sitemapExportJob: { status: 'failed', error_message: err.message } });
+            }
+        });
+    }
+
+    // Download button
+    const dlBtn = document.getElementById('sitemap-download-btn');
+    if (dlBtn) {
+        dlBtn.addEventListener('click', () => {
+            const job = Store.get('sitemapExportJob');
+            if (job?.job_id) {
+                window.open(`${API_BASE}/api/sitemap/export/${job.job_id}/download`, '_blank');
+            }
+        });
+    }
+
+    // Rerun button
+    const rerunBtn = document.getElementById('sitemap-rerun-btn');
+    if (rerunBtn) {
+        rerunBtn.addEventListener('click', () => {
+            Store.set({ sitemapExportJob: null });
+        });
+    }
+}
+
+function pollSitemapJob(jobId) {
+    if (_sitemapPollTimer) clearInterval(_sitemapPollTimer);
+    _sitemapPollTimer = setInterval(async () => {
+        try {
+            const resp = await fetch(`${API_BASE}/api/sitemap/export/${jobId}`);
+            const data = await resp.json();
+            Store.set({ sitemapExportJob: data });
+            if (data.status === 'completed' || data.status === 'failed') {
+                clearInterval(_sitemapPollTimer);
+                _sitemapPollTimer = null;
+            }
+        } catch { /* ignore poll errors */ }
+    }, 1500);
+}
+
+
+// ============================================================
+// Tag Discovery
+// ============================================================
+
+let _tagPollTimer = null;
+
+function bindTagDiscoveryEvents() {
+    const form = document.getElementById('tag-scan-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const domain = document.getElementById('td-domain').value.trim();
+            if (!domain) return;
+
+            const pageTypes = [];
+            document.querySelectorAll('.td-page-type:checked').forEach(cb => pageTypes.push(cb.value));
+            if (!pageTypes.length) { alert('Select at least one page type'); return; }
+
+            const body = {
+                domain,
+                page_types: pageTypes,
+                redact_mode: document.getElementById('td-redact')?.checked || false,
+                max_pages: 6,
+            };
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/tags/scan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                if (!resp.ok) throw new Error((await resp.json()).detail || 'Scan failed');
+                const data = await resp.json();
+                Store.set({ tagScanJob: data });
+                pollTagJob(data.job_id);
+            } catch (err) {
+                Store.set({ tagScanJob: { status: 'failed', error_message: err.message } });
+            }
+        });
+    }
+
+    // Download button
+    const dlBtn = document.getElementById('tag-download-btn');
+    if (dlBtn) {
+        dlBtn.addEventListener('click', () => {
+            const job = Store.get('tagScanJob');
+            if (job?.job_id) {
+                window.open(`${API_BASE}/api/tags/scan/${job.job_id}/download`, '_blank');
+            }
+        });
+    }
+
+    // Rerun button
+    const rerunBtn = document.getElementById('tag-rerun-btn');
+    if (rerunBtn) {
+        rerunBtn.addEventListener('click', () => {
+            Store.set({ tagScanJob: null });
+        });
+    }
+}
+
+function pollTagJob(jobId) {
+    if (_tagPollTimer) clearInterval(_tagPollTimer);
+    _tagPollTimer = setInterval(async () => {
+        try {
+            const resp = await fetch(`${API_BASE}/api/tags/scan/${jobId}`);
+            const data = await resp.json();
+            Store.set({ tagScanJob: data });
+            if (data.status === 'completed' || data.status === 'failed') {
+                clearInterval(_tagPollTimer);
+                _tagPollTimer = null;
+            }
+        } catch { /* ignore poll errors */ }
+    }, 2000);
 }
 
 

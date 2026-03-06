@@ -36,6 +36,10 @@ const Store = (() => {
         keywordEnabled: false,
         keywordData: null,
         keywordSort: 'volume_desc',
+
+        // Sitemap export + Tag discovery
+        sitemapExportJob: null,   // { job_id, status, progress, ... }
+        tagScanJob: null,         // { job_id, status, progress, ... }
     };
 
     const _listeners = [];
